@@ -3,15 +3,15 @@
 Snowflake の SQL（テーブル・ビュー・タスク・プロシージャ等）を GitHub で管理し、
 **リポジトリの SQL から作ったデータフロー図とドキュメント** を GitHub Pages で見られるようにする仕組みです。
 
-いまは最初のステップとして、**SQL ファイルを集めてデータフロー（リネージ）を整理する** ことに絞っています。
-Snowflake には接続しません（最終更新・行数・参照回数などの取得は一旦除外し、`_archive/snowflake/` に退避しています）。
+いまは最初のステップとして、**格納された SQL からデータフロー（リネージ）を整理する** ことに絞っています。
+- SQL を `sql/` に格納する作業は外注先が行います（下の「フォルダ構成」の規約に沿って格納）。回収・配置用のツールは `_archive/collect/` に退避しています。
+- Snowflake には接続しません（DDL の書き出し、最終更新・行数・参照回数などの取得は一旦除外し、`_archive/snowflake/` に退避しています）。
 
 > いま `sql/` に入っている RAW_DB / DWH_DB / MART_DB はサンプルです。実際のオブジェクトに置き換えてください（下の「導入手順」）。
 
 ## 仕組み
 
 ```
-各自の PC の SQL ──(place_sql.py)──▶ sql/<DB>/<SCHEMA>/<種別>/<NAME>.sql
 リポジトリの SQL・yml ──(repo_graph.py)──▶ graph.json   … テーブル・カラムの依存、変換式、説明
                                   │
                            (build_site.py)
@@ -65,19 +65,15 @@ make serve     # http://localhost:8000 で表示
 
 ## 導入手順
 
-1. **サンプルの `sql/` を削除**して、ブランチを切る
-2. **各自の PC にある SQL を回収**
-   ```bash
-   python tools/place_sql.py ~/Documents/my_sqls            # 確認
-   python tools/place_sql.py ~/Documents/my_sqls --apply    # 新規のものを配置
-   ```
-   「内容が異なる」と出たものは、どちらが正しいか確認してから `--overwrite` するか手で直す。
-3. **yml の説明・オーナーを書き、`make check` と `make site` で確認**して PR。
-   図で線がつながらない・解析できない SQL は `make check` の警告に出ます。
-4. **GitHub の設定**
+1. **GitHub の設定**
    - Settings → Pages → Source を「GitHub Actions」、Visibility を **Private**（組織内のみ）
    - `.github/CODEOWNERS` のチーム名を実際のものに
    - main のブランチ保護で `pr` ワークフローの成功と CODEOWNERS のレビューを必須に
+2. **外注先に格納を依頼**：「フォルダ構成」の規約（1オブジェクト1ファイル、`.sql` と `.yml` を対で、名前は大文字）を渡す。
+   サンプルの `sql/` は、実際の SQL が入る時点で削除する。
+3. **格納された PR を確認**：`pr` ワークフローの規約チェック・SQL 解析の結果を見る。手元では `make check` と `make site` で確認できます。
+   図で線がつながらない・解析できない SQL は `make check` の警告に出ます。
+   CTAS で作るテーブルは、`GET_DDL` の結果（カラム定義だけ）ではなく元の CTAS 文が入っていないと上流がつながりません。
 
 ## GitHub Actions
 

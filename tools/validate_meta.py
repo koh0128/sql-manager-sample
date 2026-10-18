@@ -17,8 +17,7 @@ from pathlib import Path
 import jsonschema
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from common import FOLDER_TO_TYPE, REPO_ROOT, SQL_DIR, SQL_DIR_NAME, read_yaml  # noqa: E402
-from place_sql import detect  # noqa: E402
+from common import FOLDER_TO_TYPE, REPO_ROOT, SQL_DIR, SQL_DIR_NAME, detect, read_yaml  # noqa: E402
 
 SCHEMA = json.loads((Path(__file__).parent / "schemas/object.schema.json").read_text(encoding="utf-8"))
 

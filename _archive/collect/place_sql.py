@@ -17,31 +17,27 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from common import REPO_ROOT, SQL_DIR, TYPE_TO_FOLDER, normalize_sql, strip_comments  # noqa: E402
+from common import CREATE_RE, DIALECT, REPO_ROOT, SQL_DIR, TYPE_TO_FOLDER, detect, strip_comments  # noqa: E402
 
-CREATE_RE = re.compile(
-    r"\bCREATE\s+(?:OR\s+REPLACE\s+)?(?:(?:SECURE|TRANSIENT|TEMPORARY|TEMP|LOCAL|GLOBAL|RECURSIVE)\s+)*"
-    r"(DYNAMIC\s+TABLE|MATERIALIZED\s+VIEW|TABLE|VIEW|STREAM|TASK|PROCEDURE|FUNCTION|FILE\s+FORMAT|STAGE)\s+"
-    r"(?:IF\s+NOT\s+EXISTS\s+)?([\w$\"]+(?:\.[\w$\"]+){0,2})", re.I)
-KIND = {"TABLE": "table", "VIEW": "view", "MATERIALIZED VIEW": "view", "DYNAMIC TABLE": "dynamic_table",
-        "STREAM": "stream", "TASK": "task", "PROCEDURE": "procedure", "FUNCTION": "function",
-        "FILE FORMAT": "file_format", "STAGE": "stage"}
+import sqlglot  # noqa: E402
 
 
-def detect(sql: str, default_db: str | None, default_schema: str | None):
-    """最初の CREATE 文から (DB, SCHEMA, NAME, 種別) を返す。分からなければ None。"""
-    m = CREATE_RE.search(strip_comments(sql))
-    if not m:
-        return None
-    kind = KIND[re.sub(r"\s+", " ", m.group(1).upper())]
-    parts = [p.strip('"').upper() for p in m.group(2).split(".")]
-    if len(parts) == 1:
-        parts = [default_db, default_schema, parts[0]]
-    elif len(parts) == 2:
-        parts = [default_db, *parts]
-    if not all(parts):
-        return None
-    return (*parts, kind)
+def normalize_sql(sql: str) -> str:
+    """整形・大文字小文字・コメントの違いを吸収した比較用の文字列にする。
+
+    sqlglot で解析できる文は再生成して揃え、解析できない文（TASK など）は
+    コメント除去・空白圧縮・大文字化で揃える。
+    """
+    body = strip_comments(sql).strip().rstrip(";").strip()
+    try:
+        parsed = sqlglot.parse(body, read=DIALECT)
+        if parsed and all(p is not None and type(p).__name__ != "Command" for p in parsed):
+            # normalize=True は引用符なし識別子だけを揃える（文字列リテラルは変えない）
+            return ";".join(p.sql(DIALECT, normalize=True, pretty=False) for p in parsed)
+    except sqlglot.errors.ParseError:
+        pass
+    text = re.sub(r"\s+", " ", body).upper()
+    return re.sub(r"\s*([(),=;])\s*", r"\1", text)
 
 
 def main() -> int:
