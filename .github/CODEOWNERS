@@ -7,5 +7,4 @@
 # 仕組み（ツール・監視設定・ワークフロー）
 /tools/                       @your-org/data-platform
 /site/                        @your-org/data-platform
-/config.yml                   @your-org/data-platform
 /.github/                     @your-org/data-platform

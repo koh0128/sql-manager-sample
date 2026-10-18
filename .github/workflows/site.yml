@@ -1,7 +1,6 @@
 name: site
 
-# リポジトリの SQL からデータフロー図を作り、Snowflake の参考情報（更新時刻・行数・参照回数）を付けて
-# GitHub Pages に公開する。
+# リポジトリの SQL からデータフロー図を作り、GitHub Pages に公開する。
 on:
   push:
     branches: [main]
@@ -9,9 +8,6 @@ on:
       - "sql/**"
       - "tools/**"
       - "site/**"
-      - "config.yml"
-  schedule:
-    - cron: "7 * * * *"   # 毎時7分（UTC）。更新時刻を新しく保つため
   workflow_dispatch:
 
 permissions:
@@ -34,30 +30,12 @@ jobs:
           python-version: "3.12"
           cache: pip
 
-      - run: pip install -r requirements-snowflake.txt
+      - run: pip install -r requirements.txt
 
       - uses: actions/configure-pages@v5
 
-      # リポジトリ変数 SNOWFLAKE_ACCOUNT が未設定の間は、リポジトリの SQL だけでサイトを作る
-      - name: Snowflake から更新時刻・行数・参照回数を取得
-        if: ${{ vars.SNOWFLAKE_ACCOUNT != '' }}
-        env:
-          SNOWFLAKE_ACCOUNT: ${{ vars.SNOWFLAKE_ACCOUNT }}
-          SNOWFLAKE_USER: ${{ vars.SNOWFLAKE_USER }}
-          SNOWFLAKE_ROLE: ${{ vars.SNOWFLAKE_ROLE }}
-          SNOWFLAKE_WAREHOUSE: ${{ vars.SNOWFLAKE_WAREHOUSE }}
-          SNOWFLAKE_PRIVATE_KEY: ${{ secrets.SNOWFLAKE_PRIVATE_KEY }}
-          SNOWFLAKE_PRIVATE_KEY_PASSPHRASE: ${{ secrets.SNOWFLAKE_PRIVATE_KEY_PASSPHRASE }}
-          NO_ACCESS_HISTORY: ${{ vars.SNOWFLAKE_NO_ACCESS_HISTORY }}
-        run: python tools/snapshot.py $([ "$NO_ACCESS_HISTORY" = "true" ] && echo --no-access-history)
-
       - name: サイトを生成
-        run: |
-          if [ -f build/state.json ]; then
-            python tools/build_site.py --state build/state.json
-          else
-            python tools/build_site.py
-          fi
+        run: python tools/build_site.py
 
       - uses: actions/upload-pages-artifact@v3
         with:

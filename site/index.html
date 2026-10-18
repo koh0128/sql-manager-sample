@@ -11,7 +11,7 @@
 <body>
 <header>
   <div>
-    <h1>データフローマップ<span class="sample" id="sample" hidden>サンプルデータ</span></h1>
+    <h1>データフローマップ</h1>
     <p class="sub" id="sync">読み込み中…</p>
   </div>
   <div class="stats" id="stats"></div>
@@ -28,9 +28,6 @@
     <div class="fgroup"><label class="lbl" for="f-owner">オーナー</label><select id="f-owner"></select></div>
     <div class="fgroup"><span class="lbl">表示</span>
       <label class="chk"><input type="checkbox" id="f-proc" checked>タスク・プロシージャを表示</label>
-    </div>
-    <div class="fgroup"><label class="lbl" for="f-color">ノードの色</label>
-      <select id="f-color"><option value="fresh">更新の新しさ</option><option value="reads">参照回数</option><option value="db">データベース別</option></select>
     </div>
     <div class="fgroup"><label class="lbl" for="f-hops">選択ノードからの範囲</label>
       <input type="range" id="f-hops" min="1" max="6" value="6" disabled>
@@ -55,8 +52,7 @@
     <div id="legend">
       <span class="lg"><i class="l-line"></i>データの流れ（SQL から解析）</span>
       <span class="lg"><i class="l-dia"></i>タスク／プロシージャ</span>
-      <span class="lg" style="grid-column:1/-1"><span class="mono">↓3（全9）· 参照 1.2k/30日</span>＝直接の後続3・下流全体9・30日の参照回数</span>
-      <span class="lg" style="grid-column:1/-1"><span class="mono">更新 2時間前 · 毎日06:30</span>＝最終更新と更新頻度（ビューは上流のデータ基準）</span>
+      <span class="lg" style="grid-column:1/-1"><span class="mono">↓3（全9）· 更新 毎日06:30</span>＝直接の後続3・下流全体9・更新頻度</span>
       <span class="lg cscale" style="grid-column:1/-1" id="legend-color"></span>
     </div>
   </section>
