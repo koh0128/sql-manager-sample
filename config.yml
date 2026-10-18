@@ -1,0 +1,9 @@
+# Snowflake から情報を取得するときの設定（tools/snapshot.py・tools/export_ddl.py が読む）
+
+# 対象のデータベース
+databases: [RAW_DB, DWH_DB, MART_DB]
+
+# 対象から外すオブジェクト（作業用スキーマなど）
+ignore_objects:
+  - "*.SANDBOX.*"
+  - "*.INFORMATION_SCHEMA.*"

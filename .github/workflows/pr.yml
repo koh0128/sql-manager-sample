@@ -6,7 +6,7 @@ on:
       - "sql/**"
       - "tools/**"
       - "site/**"
-      - "monitor.yml"
+      - "config.yml"
       - ".sqlfluff"
       - "requirements*.txt"
 

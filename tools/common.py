@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 import fnmatch
-import hashlib
 import json
 import logging
 import re
@@ -61,7 +60,7 @@ def strip_comments(sql: str) -> str:
 
 
 def normalize_sql(sql: str) -> str:
-    """整形・大文字小文字・コメントの違いを吸収した比較用の文字列にする。
+    """整形・大文字小文字・コメントの違いを吸収した比較用の文字列にする（place_sql.py の一致判定用）。
 
     sqlglot で解析できる文は再生成して揃え、解析できない文（TASK など）は
     コメント除去・空白圧縮・大文字化で揃える。
@@ -78,15 +77,11 @@ def normalize_sql(sql: str) -> str:
     return re.sub(r"\s*([(),=;])\s*", r"\1", text)
 
 
-def sql_hash(sql: str) -> str:
-    return hashlib.sha256(normalize_sql(sql).encode()).hexdigest()[:16]
-
-
 TASK_BODY_RE = re.compile(r"\bAS\s+(?=(MERGE|INSERT|CALL|CREATE|UPDATE|DELETE|BEGIN|EXECUTE|COPY|SELECT)\b)", re.I)
 
 
 def task_body(sql: str) -> str:
-    """CREATE TASK ... AS <body> の body 部分（SHOW TASKS の definition と比較するため）。"""
+    """CREATE TASK ... AS <body> の body 部分。"""
     text = strip_comments(sql)
     m = TASK_BODY_RE.search(text)
     return text[m.end():].strip() if m else text

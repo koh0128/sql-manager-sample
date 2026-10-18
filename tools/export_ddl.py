@@ -4,7 +4,7 @@ GET_DDL で定義を取り、同名の .yml（説明・オーナー等の雛形�
 接続方法は snapshot.py と同じ環境変数。
 
 使い方:
-    python tools/export_ddl.py                       # monitor.yml の databases をすべて
+    python tools/export_ddl.py                       # config.yml の databases をすべて
     python tools/export_ddl.py --database DWH_DB --schema CORE
 """
 from __future__ import annotations
@@ -39,11 +39,11 @@ def yml_skeleton(name: str, type_: str, comment: str, columns: list) -> str:
 
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--database", action="append", help="対象 DB（複数可）。省略時は monitor.yml の databases")
+    ap.add_argument("--database", action="append", help="対象 DB（複数可）。省略時は config.yml の databases")
     ap.add_argument("--schema", help="対象スキーマ（1つ）")
     ap.add_argument("--overwrite", action="store_true")
     args = ap.parse_args()
-    cfg = read_yaml(REPO_ROOT / "monitor.yml")
+    cfg = read_yaml(REPO_ROOT / "config.yml")
     dbs = [d.upper() for d in (args.database or cfg.get("databases") or [])]
     ignore = cfg.get("ignore_objects") or []
 

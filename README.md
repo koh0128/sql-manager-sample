@@ -1,33 +1,28 @@
 # sql-management
 
 Snowflake の SQL（テーブル・ビュー・タスク・プロシージャ等）を GitHub で管理し、
-**リポジトリの SQL から作ったデータフロー図** に **Snowflake の実際の状態** を重ねて、
-異常（タスク失敗・手動変更・手動デプロイ・GitHub 未登録など）を同じ画面で確認できるようにする仕組みです。
+**リポジトリの SQL から作ったデータフロー図とドキュメント** を GitHub Pages で見られるようにする仕組みです。
+Snowflake に接続できる場合は、最終更新・行数・30日の参照回数も図に表示します。
 
 > いま `sql/` に入っている RAW_DB / DWH_DB / MART_DB はサンプルです。実際のオブジェクトに置き換えてください（下の「導入手順」）。
 
 ## 仕組み
 
 ```
-リポジトリの SQL・yml ──(repo_graph.py)──▶ graph.json   … あるべき姿（テーブル・カラムの依存、変換式）
-Snowflake          ──(snapshot.py)───▶ state.json   … 実際の姿（定義・実行結果・DDL 実行者・参照回数）
+リポジトリの SQL・yml ──(repo_graph.py)──▶ graph.json   … テーブル・カラムの依存、変換式、説明
+Snowflake（任意）    ──(snapshot.py)───▶ state.json   … 最終更新・行数・カラム型・30日参照回数
                          │
-                   (compare.py) 突き合わせ
+                    (enrich.py) 参考情報を付ける
                          ▼
-          lineage.json（画面用）＋ anomalies.json（異常一覧）
-                         │
-        build_site.py → GitHub Pages ／ sync_issues.py → GitHub Issue
+              lineage.json ──(build_site.py)──▶ GitHub Pages
 ```
 
-| 検出する異常 | 判定 |
-|---|---|
-| タスク失敗・更新遅延 | `TASK_HISTORY` の最終実行が失敗。書き込み先と、その下流を「更新遅延」にする |
-| 手動変更 | Snowflake の定義とリポジトリの SQL が違う（整形・大文字小文字・コメントの違いは無視） |
-| 手動デプロイ | `monitor.yml` の許可リストに無いユーザーが DDL を実行した（誰が・いつ・何を） |
-| GitHub 未登録 | Snowflake にだけあるオブジェクト |
-| 未デプロイ | リポジトリにだけあるオブジェクト |
-| コード外の流れ | 実行履歴にはあるが、リポジトリの SQL に無い読み書き |
-| 30日以上未更新 | 書き込み（ビューは参照）が `stale_days` 以上無く、参照も無い |
+画面でできること:
+- テーブル単位のデータフロー図（DB/スキーマ・種別・タグ・オーナーで絞り込み、上流・下流のハイライト、Nホップ表示、検索）
+- カラム単位のリネージ図（カラム間の線に変換式）
+- 各オブジェクトの説明・オーナー・タグ・カラム説明・SQL・GitHub のファイルへのリンク
+- 後続の数（直接／下流全体）・30日参照回数・最終更新・更新頻度。ノードの色を「更新の新しさ／参照回数／DB別」で切り替え
+- 説明が未記入のオブジェクトとカラム説明の記入率
 
 ## フォルダ構成
 
@@ -56,38 +51,36 @@ columns:
   - name: AGE_BAND
     description: 年代（10歳刻み）
 ```
-型・行数・更新日時など Snowflake から取れる情報は yml に書きません（自動で取得して表示します）。
+型・行数・更新日時など Snowflake から取れる情報は yml に書きません（取得して表示します）。
 
 ## ローカルで試す
 
 ```bash
 make setup     # .venv を作って依存をインストール
-make sample    # サンプルの Snowflake 状態でサイトを作る（Snowflake 接続不要）
+make sample    # サンプルの Snowflake 情報でサイトを作る（Snowflake 接続不要）
 make serve     # http://localhost:8000 で表示
 ```
-`make site` はリポジトリの SQL だけで作ります（状態は「未取得」表示）。
+`make site` はリポジトリの SQL だけで作ります（更新時刻・参照回数は「—」）。
 その他: `make check`（規約チェック）、`make lint`（sqlfluff）、`make graph`（graph.json のみ）。
 
 ## 導入手順
 
-1. **Snowflake に読み取り用のサービスユーザーを作る**（キーペア認証）
+1. **Snowflake に読み取り用のサービスユーザーを作る**（キーペア認証。Pages に更新時刻などを出さないなら不要）
    ```sql
    CREATE ROLE SQL_MGMT_READER;
    GRANT USAGE ON WAREHOUSE <WH_XS> TO ROLE SQL_MGMT_READER;
-   GRANT IMPORTED PRIVILEGES ON DATABASE SNOWFLAKE TO ROLE SQL_MGMT_READER;   -- ACCOUNT_USAGE
-   -- 対象 DB ごとに
+   GRANT IMPORTED PRIVILEGES ON DATABASE SNOWFLAKE TO ROLE SQL_MGMT_READER;   -- 参照回数（ACCESS_HISTORY）用
+   -- 対象 DB ごとに（FUTURE GRANTS も同様に）
    GRANT USAGE ON DATABASE <DB> TO ROLE SQL_MGMT_READER;
    GRANT USAGE ON ALL SCHEMAS IN DATABASE <DB> TO ROLE SQL_MGMT_READER;
    GRANT REFERENCES ON ALL TABLES IN DATABASE <DB> TO ROLE SQL_MGMT_READER;
    GRANT REFERENCES ON ALL VIEWS IN DATABASE <DB> TO ROLE SQL_MGMT_READER;
-   GRANT MONITOR ON ALL TASKS IN DATABASE <DB> TO ROLE SQL_MGMT_READER;
-   -- FUTURE GRANTS も同様に
    CREATE USER SVC_SQL_MGMT TYPE = SERVICE DEFAULT_ROLE = SQL_MGMT_READER RSA_PUBLIC_KEY = '<公開鍵>';
    GRANT ROLE SQL_MGMT_READER TO USER SVC_SQL_MGMT;
    ```
-   ACCESS_HISTORY（手動デプロイの実行者・コード外の流れ・参照回数）は Enterprise Edition 以上が必要です。
-   Standard Edition の場合はリポジトリ変数 `SNOWFLAKE_NO_ACCESS_HISTORY=true` を設定してください。
-2. **`monitor.yml` を編集**：対象 `databases`、`allowed_ddl`（Airflow などのサービスユーザー）、`ignore_objects`。
+   参照回数は ACCESS_HISTORY（Enterprise Edition 以上）から取ります。使えない場合はリポジトリ変数 `SNOWFLAKE_NO_ACCESS_HISTORY=true`。
+   既存オブジェクトの書き出し（手順3）にはオブジェクトの定義を見る権限も必要です。
+2. **`config.yml` を編集**：対象 `databases` と除外する `ignore_objects`。
 3. **既存オブジェクトを書き出す**（サンプルの `sql/` は削除してから）
    ```bash
    pip install -r requirements-snowflake.txt
@@ -103,7 +96,7 @@ make serve     # http://localhost:8000 で表示
    「内容が異なる」と出たものは、どちらが正しいか確認してから `--overwrite` するか手で直す。yml の説明・オーナーを書いて PR。
 5. **GitHub の設定**
    - Settings → Pages → Source を「GitHub Actions」、Visibility を **Private**（組織内のみ）
-   - Settings → Secrets and variables → Actions
+   - Settings → Secrets and variables → Actions（Snowflake の情報を出す場合）
      - Variables: `SNOWFLAKE_ACCOUNT` `SNOWFLAKE_USER` `SNOWFLAKE_ROLE` `SNOWFLAKE_WAREHOUSE`（任意 `SNOWFLAKE_NO_ACCESS_HISTORY`）
      - Secrets: `SNOWFLAKE_PRIVATE_KEY`（PEM 本文）、必要なら `SNOWFLAKE_PRIVATE_KEY_PASSPHRASE`
    - `.github/CODEOWNERS` のチーム名を実際のものに
@@ -114,11 +107,9 @@ make serve     # http://localhost:8000 で表示
 | ワークフロー | いつ | 何をする |
 |---|---|---|
 | `pr` | PR | 規約チェック、sqlfluff、SQL 解析確認、**変更の影響範囲（下流のテーブル・削除カラムの利用先）を PR にコメント** |
-| `site` | main への push ＋ 毎時 | Snowflake 状態の取得 → サイト生成 → Pages 公開 → 異常を Issue に同期（新規は作成、解消したらクローズ） |
-
-Task 失敗をすぐ知りたい場合は、Snowflake 側でタスクに `ERROR_INTEGRATION` を設定して Slack 等へ通知してください（サイトと Issue は最大1時間遅れ）。
+| `site` | main への push ＋ 毎時 | （設定があれば）Snowflake から更新時刻・行数・参照回数を取得 → サイト生成 → Pages 公開 |
 
 ## 今後
 
-- **CD**：main マージで DEV へ自動デプロイ、PROD は承認付き。デプロイは `monitor.yml` の `deploy_users` のユーザーで行い、導入後は `mode: strict`（それ以外の DDL はすべて異常）に切り替える。
+- **CD**：main マージで DEV へ自動デプロイ、PROD は承認付き。
 - **dbt**：変換系 SQL をスキーマ単位で dbt に移行。`repo_graph.py` で dbt の `manifest.json` も読み、同じ図に統合する。

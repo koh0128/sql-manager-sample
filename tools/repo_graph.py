@@ -26,7 +26,7 @@ from sqlglot.lineage import lineage as sqlglot_lineage
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from common import (BUILD_DIR, DIALECT, FOLDER_TO_TYPE, REPO_ROOT, SQL_DIR,  # noqa: E402
-                    fqn, procedure_body, read_yaml, sql_hash, strip_comments, task_body, write_json)
+                    fqn, procedure_body, read_yaml, strip_comments, task_body, write_json)
 
 
 @dataclass
@@ -370,7 +370,7 @@ def build(root: Path) -> dict:
         m = o.meta
         nodes.append({
             "id": o.id, "db": o.db, "schema": o.schema, "name": o.name, "type": o.type, "path": o.path,
-            "sql": o.sql, "sql_hash": sql_hash(o.sql),
+            "sql": o.sql,
             "description": m.get("description", ""), "owner": m.get("owner", ""), "tags": m.get("tags") or [],
             "meta": m.get("meta") or {}, "schedule": o.schedule, "target_lag": o.target_lag, "columns": o.columns,
         })

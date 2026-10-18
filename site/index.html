@@ -24,11 +24,9 @@
       <div class="btnrow"><button class="btn mini" id="b-sch-all">すべて選択</button><button class="btn mini" id="b-sch-none">すべて解除</button></div>
       <div id="f-db" class="tree"></div></div>
     <div class="fgroup"><span class="lbl">種別</span><div id="f-type"></div></div>
-    <div class="fgroup"><span class="lbl">状態</span><div id="f-status"></div></div>
     <div class="fgroup"><label class="lbl" for="f-tag">タグ</label><select id="f-tag"></select></div>
     <div class="fgroup"><label class="lbl" for="f-owner">オーナー</label><select id="f-owner"></select></div>
     <div class="fgroup"><span class="lbl">表示</span>
-      <label class="chk"><input type="checkbox" id="f-anom">異常・失敗・遅延のあるものだけ</label>
       <label class="chk"><input type="checkbox" id="f-proc" checked>タスク・プロシージャを表示</label>
     </div>
     <div class="fgroup"><label class="lbl" for="f-color">ノードの色</label>
@@ -55,14 +53,8 @@
       <div id="cy2"></div>
     </div>
     <div id="legend">
-      <span class="lg"><i class="l-line"></i>実行履歴で確認済み</span>
-      <span class="lg"><i class="l-box l-fail"></i>失敗</span>
-      <span class="lg"><i class="l-dash"></i>SQL解析・定義のみ</span>
-      <span class="lg"><i class="l-box l-warn"></i>更新遅延</span>
-      <span class="lg"><i class="l-off"></i>コード外の流れ</span>
-      <span class="lg"><i class="l-box l-stale"></i>30日以上未更新</span>
+      <span class="lg"><i class="l-line"></i>データの流れ（SQL から解析）</span>
       <span class="lg"><i class="l-dia"></i>タスク／プロシージャ</span>
-      <span class="lg"><b>⚠</b>手動変更・未登録などの異常</span>
       <span class="lg" style="grid-column:1/-1"><span class="mono">↓3（全9）· 参照 1.2k/30日</span>＝直接の後続3・下流全体9・30日の参照回数</span>
       <span class="lg" style="grid-column:1/-1"><span class="mono">更新 2時間前 · 毎日06:30</span>＝最終更新と更新頻度（ビューは上流のデータ基準）</span>
       <span class="lg cscale" style="grid-column:1/-1" id="legend-color"></span>

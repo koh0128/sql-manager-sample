@@ -1,8 +1,8 @@
-"""グラフ生成 → Snowflake 状態との突き合わせ → 公開用サイト（build/site/）までを一度に行う。
+"""グラフ生成 → Snowflake の参考情報を付与 → 公開用サイト（build/site/）までを一度に行う。
 
 使い方:
     python tools/build_site.py                                   # リポジトリの SQL だけで作る
-    python tools/build_site.py --state examples/state.sample.json  # サンプル状態で作る
+    python tools/build_site.py --state examples/state.sample.json  # サンプルの Snowflake 情報で作る
     python tools/build_site.py --state build/state.json            # snapshot.py の出力で作る
 
 ローカル確認:  python -m http.server -d build/site 8000  → http://localhost:8000
@@ -17,9 +17,9 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-import compare  # noqa: E402
+import enrich  # noqa: E402
 import repo_graph  # noqa: E402
-from common import BUILD_DIR, REPO_ROOT, SQL_DIR, read_json, read_yaml, write_json  # noqa: E402
+from common import BUILD_DIR, REPO_ROOT, SQL_DIR, read_json, write_json  # noqa: E402
 
 
 def repo_url() -> tuple[str, str]:
@@ -47,10 +47,9 @@ def main() -> int:
     graph = repo_graph.build(SQL_DIR)
     write_json(BUILD_DIR / "graph.json", graph)
     state = read_json(args.state) if args.state else None
-    lineage, anomalies = compare.build(graph, state, read_yaml(REPO_ROOT / "monitor.yml"))
+    lineage = enrich.build(graph, state)
     lineage["repo_url"], lineage["branch"] = repo_url()
     write_json(BUILD_DIR / "lineage.json", lineage)
-    write_json(BUILD_DIR / "anomalies.json", anomalies)
 
     if args.out.exists():
         shutil.rmtree(args.out)
@@ -58,8 +57,8 @@ def main() -> int:
     shutil.copy(BUILD_DIR / "lineage.json", args.out / "lineage.json")
     (args.out / ".nojekyll").touch()
 
-    print(f"site -> {args.out}  ({len(lineage['nodes'])} objects, {len(anomalies)} anomalies,"
-          f" {len(graph['warnings'])} warnings)")
+    print(f"site -> {args.out}  ({len(lineage['nodes'])} objects, {len(graph['warnings'])} warnings,"
+          f" {'Snowflake 情報あり' if state else 'Snowflake 情報なし'})")
     for w in graph["warnings"]:
         print("WARN", w, file=sys.stderr)
     return 0

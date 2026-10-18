@@ -1,7 +1,7 @@
 name: site
 
-# リポジトリの SQL からグラフを作り、Snowflake の状態を重ねて GitHub Pages に公開する。
-# 異常（タスク失敗・手動変更・手動デプロイ・未登録など）は Issue に同期する。
+# リポジトリの SQL からデータフロー図を作り、Snowflake の参考情報（更新時刻・行数・参照回数）を付けて
+# GitHub Pages に公開する。
 on:
   push:
     branches: [main]
@@ -9,16 +9,15 @@ on:
       - "sql/**"
       - "tools/**"
       - "site/**"
-      - "monitor.yml"
+      - "config.yml"
   schedule:
-    - cron: "7 * * * *"   # 毎時7分（UTC）
+    - cron: "7 * * * *"   # 毎時7分（UTC）。更新時刻を新しく保つため
   workflow_dispatch:
 
 permissions:
   contents: read
   pages: write
   id-token: write
-  issues: write
 
 concurrency:
   group: site
@@ -37,12 +36,10 @@ jobs:
 
       - run: pip install -r requirements-snowflake.txt
 
-      - id: pages
-        uses: actions/configure-pages@v5
+      - uses: actions/configure-pages@v5
 
       # リポジトリ変数 SNOWFLAKE_ACCOUNT が未設定の間は、リポジトリの SQL だけでサイトを作る
-      - name: Snowflake の状態を取得
-        id: snapshot
+      - name: Snowflake から更新時刻・行数・参照回数を取得
         if: ${{ vars.SNOWFLAKE_ACCOUNT != '' }}
         env:
           SNOWFLAKE_ACCOUNT: ${{ vars.SNOWFLAKE_ACCOUNT }}
@@ -65,13 +62,6 @@ jobs:
       - uses: actions/upload-pages-artifact@v3
         with:
           path: build/site
-
-      - name: 異常を Issue に同期
-        if: ${{ steps.snapshot.outcome == 'success' }}
-        env:
-          GH_TOKEN: ${{ github.token }}
-          SITE_URL: ${{ steps.pages.outputs.base_url }}
-        run: python tools/sync_issues.py --site-url "$SITE_URL"
 
   deploy:
     needs: build
