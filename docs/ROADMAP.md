@@ -32,6 +32,7 @@ flowchart LR
     end
     NOW ~~~ GOAL
 ```
+a
 
 | 課題 | 起きていること |
 |---|---|
