@@ -1,0 +1,3 @@
+name: RAW_DB
+description: 取り込み層。外部システムからのデータをそのまま格納する。
+owner: data-platform

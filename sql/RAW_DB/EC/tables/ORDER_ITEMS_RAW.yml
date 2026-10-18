@@ -1,0 +1,10 @@
+name: ORDER_ITEMS_RAW
+type: table
+description: 受注明細。1行=1注文明細行。
+owner: data-platform
+tags:
+- ec
+- raw
+meta:
+  refresh: 外部ETL
+  schedule: 5分毎

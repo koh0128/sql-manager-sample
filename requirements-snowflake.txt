@@ -1,0 +1,4 @@
+# Snowflake へ接続する処理（snapshot.py / export_ddl.py）で追加で必要
+-r requirements.txt
+snowflake-connector-python>=3.12,<6
+cryptography>=42

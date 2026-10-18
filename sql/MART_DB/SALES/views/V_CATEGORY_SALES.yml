@@ -1,0 +1,13 @@
+name: V_CATEGORY_SALES
+type: view
+description: カテゴリ別売上。
+owner: sales-analytics
+tags:
+- sales
+columns:
+- name: CATEGORY
+  description: 大分類
+- name: AMOUNT
+  description: 売上金額
+- name: ITEM_COUNT
+  description: 販売点数

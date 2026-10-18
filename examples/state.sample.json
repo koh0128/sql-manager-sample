@@ -1,0 +1,892 @@
+{
+  "synced_at": "2026-10-18T06:40:00+09:00",
+  "account": "SAMPLE",
+  "objects": {
+    "DWH_DB.CORE.DIM_PRODUCT": {
+      "type": "dynamic_table",
+      "columns": [
+        [
+          "PRODUCT_ID",
+          "VARCHAR",
+          "商品コード"
+        ],
+        [
+          "PRODUCT_NAME",
+          "VARCHAR",
+          "商品名"
+        ],
+        [
+          "CATEGORY",
+          "VARCHAR",
+          "大分類"
+        ]
+      ],
+      "ddl": "CREATE OR REPLACE DYNAMIC TABLE DWH_DB.CORE.DIM_PRODUCT\n    TARGET_LAG = '1 hour'\n    WAREHOUSE = WH_ETL_XS\nAS\nSELECT PRODUCT_ID, PRODUCT_NAME, CATEGORY\nFROM RAW_DB.EC.PRODUCTS_RAW;\n",
+      "last_altered": "2026-10-18T02:05+09:00",
+      "rows": 18420,
+      "reads_30d": 1960
+    },
+    "DWH_DB.CORE.SP_BUILD_ORDER_ITEMS": {
+      "type": "procedure",
+      "columns": [],
+      "body": "BEGIN\n    CREATE OR REPLACE TABLE DWH_DB.CORE.FCT_ORDER_ITEMS AS\n    SELECT i.ORDER_ID, i.LINE_NO, i.PRODUCT_ID, i.QTY,\n           i.QTY * i.UNIT_PRICE AS LINE_AMOUNT\n    FROM RAW_DB.EC.ORDER_ITEMS_RAW i\n    JOIN DWH_DB.CORE.DIM_PRODUCT p USING (PRODUCT_ID);\n    RETURN 'ok';\nEND;"
+    },
+    "DWH_DB.CORE.DIM_ACCOUNT": {
+      "type": "table",
+      "columns": [
+        [
+          "ACCOUNT_ID",
+          "VARCHAR",
+          ""
+        ],
+        [
+          "ACCOUNT_NAME",
+          "VARCHAR",
+          ""
+        ],
+        [
+          "INDUSTRY",
+          "VARCHAR",
+          ""
+        ]
+      ],
+      "last_altered": "2026-10-18T01:30+09:00",
+      "rows": 9812,
+      "reads_30d": 402
+    },
+    "DWH_DB.CORE.DIM_CUSTOMER": {
+      "type": "table",
+      "columns": [
+        [
+          "CUSTOMER_ID",
+          "VARCHAR",
+          "顧客ID"
+        ],
+        [
+          "PREFECTURE",
+          "VARCHAR",
+          "都道府県名"
+        ],
+        [
+          "SIGNUP_DATE",
+          "VARCHAR",
+          "会員登録日"
+        ],
+        [
+          "AGE_BAND",
+          "VARCHAR",
+          "年代（10歳刻み）"
+        ]
+      ],
+      "last_altered": "2026-10-18T02:20+09:00",
+      "rows": 402775,
+      "reads_30d": 3380
+    },
+    "DWH_DB.CORE.FCT_ORDERS": {
+      "type": "table",
+      "columns": [
+        [
+          "ORDER_ID",
+          "DECIMAL(38, 0)",
+          "注文ID（主キー）"
+        ],
+        [
+          "CUSTOMER_ID",
+          "DECIMAL(38, 0)",
+          "顧客ID"
+        ],
+        [
+          "ORDER_DATE",
+          "DATE",
+          "注文日（JST）"
+        ],
+        [
+          "ORDER_AMOUNT",
+          "DECIMAL(12, 2)",
+          "税込注文金額"
+        ],
+        [
+          "ORDER_STATUS",
+          "VARCHAR",
+          "大文字に正規化したステータス"
+        ],
+        [
+          "CHANNEL",
+          "VARCHAR",
+          ""
+        ]
+      ],
+      "last_altered": "2026-10-18T06:35+09:00",
+      "rows": 1284331,
+      "reads_30d": 5120
+    },
+    "DWH_DB.CORE.FCT_ORDER_ITEMS": {
+      "type": "table",
+      "columns": [
+        [
+          "ORDER_ID",
+          "DECIMAL(38, 0)",
+          "注文ID"
+        ],
+        [
+          "LINE_NO",
+          "DECIMAL(4, 0)",
+          ""
+        ],
+        [
+          "PRODUCT_ID",
+          "VARCHAR",
+          "商品コード"
+        ],
+        [
+          "QTY",
+          "DECIMAL(6, 0)",
+          "数量"
+        ],
+        [
+          "LINE_AMOUNT",
+          "DECIMAL(14, 2)",
+          "明細金額 = 数量 × 単価"
+        ]
+      ],
+      "last_altered": "2026-10-17T03:01+09:00",
+      "rows": 3897240,
+      "reads_30d": 880
+    },
+    "DWH_DB.CORE.FCT_PAGE_VIEWS": {
+      "type": "table",
+      "columns": [
+        [
+          "VIEW_ID",
+          "VARCHAR",
+          ""
+        ],
+        [
+          "SESSION_ID",
+          "VARCHAR",
+          "セッションID"
+        ],
+        [
+          "CUSTOMER_ID",
+          "VARCHAR",
+          ""
+        ],
+        [
+          "VIEW_DATE",
+          "VARCHAR",
+          "閲覧日"
+        ],
+        [
+          "SOURCE_CHANNEL",
+          "VARCHAR",
+          "流入チャネル（未設定は direct）"
+        ]
+      ],
+      "last_altered": "2026-10-18T06:10+09:00",
+      "rows": 88301552,
+      "reads_30d": 2210
+    },
+    "DWH_DB.CORE.FCT_SESSIONS_OLD": {
+      "type": "table",
+      "columns": [
+        [
+          "SESSION_ID",
+          "VARCHAR",
+          ""
+        ],
+        [
+          "SESSION_DATE",
+          "VARCHAR",
+          ""
+        ],
+        [
+          "REFERRER",
+          "VARCHAR",
+          ""
+        ]
+      ],
+      "last_altered": "2026-06-02T05:00+09:00",
+      "rows": 12055190,
+      "reads_30d": 0
+    },
+    "DWH_DB.CORE.T_BUILD_ITEMS": {
+      "type": "task",
+      "columns": [],
+      "body": "CALL DWH_DB.CORE.SP_BUILD_ORDER_ITEMS();"
+    },
+    "DWH_DB.CORE.T_LOAD_ORDERS": {
+      "type": "task",
+      "columns": [],
+      "body": "MERGE INTO DWH_DB.CORE.FCT_ORDERS t\nUSING RAW_DB.EC.ORDERS_RAW_STREAM s\n    ON t.ORDER_ID = s.ORDER_ID\nWHEN MATCHED THEN UPDATE SET ORDER_STATUS = UPPER(s.STATUS)\nWHEN NOT MATCHED THEN INSERT (ORDER_ID, CUSTOMER_ID, ORDER_DATE, ORDER_AMOUNT, ORDER_STATUS, CHANNEL)\n    VALUES (s.ORDER_ID, s.CUSTOMER_ID, TO_DATE(s.ORDER_TS), s.TOTAL, UPPER(s.STATUS), s.CHANNEL);"
+    },
+    "MART_DB.MARKETING.V_CHANNEL_CONVERSION": {
+      "type": "view",
+      "columns": [
+        [
+          "VIEW_DATE",
+          "VARCHAR",
+          "日付"
+        ],
+        [
+          "SOURCE_CHANNEL",
+          "VARCHAR",
+          "流入チャネル"
+        ],
+        [
+          "SESSIONS",
+          "VARCHAR",
+          "セッション数"
+        ],
+        [
+          "ORDERS",
+          "VARCHAR",
+          "注文数"
+        ],
+        [
+          "CVR",
+          "VARCHAR",
+          "ORDERS / SESSIONS"
+        ]
+      ],
+      "ddl": "CREATE OR REPLACE VIEW MART_DB.MARKETING.V_CHANNEL_CONVERSION AS\nSELECT\n    pv.VIEW_DATE,\n    pv.SOURCE_CHANNEL,\n    COUNT(DISTINCT pv.SESSION_ID) AS SESSIONS,\n    COUNT(DISTINCT o.ORDER_ID)    AS ORDERS,\n    COUNT(DISTINCT o.ORDER_ID) / NULLIF(COUNT(DISTINCT pv.SESSION_ID), 0) AS CVR\nFROM DWH_DB.CORE.FCT_PAGE_VIEWS pv\nLEFT JOIN DWH_DB.CORE.FCT_ORDERS o\n    ON o.CUSTOMER_ID = pv.CUSTOMER_ID\n   AND o.ORDER_DATE = pv.VIEW_DATE\nGROUP BY 1, 2;\n",
+      "last_read": "2026-10-18T06:15+09:00",
+      "reads_30d": 3105
+    },
+    "MART_DB.MARKETING.V_SESSION_REPORT_OLD": {
+      "type": "view",
+      "columns": [
+        [
+          "SESSION_DATE",
+          "VARCHAR",
+          ""
+        ],
+        [
+          "SESSIONS",
+          "VARCHAR",
+          ""
+        ]
+      ],
+      "ddl": "CREATE OR REPLACE VIEW MART_DB.MARKETING.V_SESSION_REPORT_OLD AS\nSELECT\n    SESSION_DATE,\n    COUNT(*) AS SESSIONS\nFROM DWH_DB.CORE.FCT_SESSIONS_OLD\nGROUP BY 1;\n",
+      "last_read": "2026-06-30T09:00+09:00",
+      "reads_30d": 0
+    },
+    "MART_DB.SALES.DAILY_SALES": {
+      "type": "table",
+      "columns": [
+        [
+          "SALES_DATE",
+          "DATE",
+          "売上日"
+        ],
+        [
+          "PREFECTURE",
+          "VARCHAR",
+          "都道府県"
+        ],
+        [
+          "CHANNEL",
+          "VARCHAR",
+          "販売チャネル"
+        ],
+        [
+          "ORDER_COUNT",
+          "DECIMAL(18, 0)",
+          "注文件数"
+        ],
+        [
+          "TOTAL_AMOUNT",
+          "DECIMAL(18, 2)",
+          "売上金額（税込）"
+        ]
+      ],
+      "last_altered": "2026-10-18T06:31+09:00",
+      "rows": 512330,
+      "reads_30d": 14200
+    },
+    "MART_DB.SALES.T_DAILY_SALES": {
+      "type": "task",
+      "columns": [],
+      "body": "INSERT INTO MART_DB.SALES.DAILY_SALES (SALES_DATE, PREFECTURE, CHANNEL, ORDER_COUNT, TOTAL_AMOUNT)\nSELECT\n    o.ORDER_DATE,\n    c.PREFECTURE,\n    o.CHANNEL,\n    COUNT(DISTINCT o.ORDER_ID) AS ORDER_COUNT,\n    SUM(o.ORDER_AMOUNT) AS TOTAL_AMOUNT\nFROM DWH_DB.CORE.FCT_ORDERS o\nJOIN DWH_DB.CORE.DIM_CUSTOMER c USING (CUSTOMER_ID)\nWHERE o.ORDER_DATE = CURRENT_DATE - 1\nGROUP BY 1, 2, 3;"
+    },
+    "MART_DB.SALES.V_CATEGORY_SALES": {
+      "type": "view",
+      "columns": [
+        [
+          "CATEGORY",
+          "VARCHAR",
+          "大分類"
+        ],
+        [
+          "AMOUNT",
+          "VARCHAR",
+          "売上金額"
+        ],
+        [
+          "ITEM_COUNT",
+          "VARCHAR",
+          "販売点数"
+        ]
+      ],
+      "ddl": "CREATE OR REPLACE VIEW MART_DB.SALES.V_CATEGORY_SALES AS\nSELECT\n    p.CATEGORY,\n    SUM(i.LINE_AMOUNT) AS AMOUNT,\n    SUM(i.QTY)         AS ITEM_COUNT\nFROM DWH_DB.CORE.FCT_ORDER_ITEMS i\nJOIN DWH_DB.CORE.DIM_PRODUCT p USING (PRODUCT_ID)\nGROUP BY 1;\n",
+      "last_read": "2026-10-18T04:40+09:00",
+      "reads_30d": 960
+    },
+    "MART_DB.SALES.V_CUSTOMER_LTV": {
+      "type": "view",
+      "columns": [
+        [
+          "CUSTOMER_ID",
+          "VARCHAR",
+          "顧客ID"
+        ],
+        [
+          "AGE_BAND",
+          "VARCHAR",
+          "年代"
+        ],
+        [
+          "FIRST_ORDER_DATE",
+          "VARCHAR",
+          "初回購入日"
+        ],
+        [
+          "LTV_AMOUNT",
+          "VARCHAR",
+          "累計購入金額"
+        ]
+      ],
+      "ddl": "CREATE OR REPLACE VIEW MART_DB.SALES.V_CUSTOMER_LTV AS\nSELECT\n    o.CUSTOMER_ID,\n    c.AGE_BAND,\n    MIN(o.ORDER_DATE)   AS FIRST_ORDER_DATE,\n    SUM(o.ORDER_AMOUNT) AS LTV_AMOUNT\nFROM DWH_DB.CORE.FCT_ORDERS o\nJOIN DWH_DB.CORE.DIM_CUSTOMER c USING (CUSTOMER_ID)\nGROUP BY 1, 2;\n",
+      "last_read": "2026-10-18T05:12+09:00",
+      "reads_30d": 1830
+    },
+    "MART_DB.SALES.V_PIPELINE": {
+      "type": "view",
+      "columns": [
+        [
+          "ACCOUNT_NAME",
+          "VARCHAR",
+          "取引先名"
+        ],
+        [
+          "STAGE",
+          "VARCHAR",
+          "フェーズ"
+        ],
+        [
+          "AMOUNT",
+          "VARCHAR",
+          "見込金額"
+        ],
+        [
+          "CLOSE_MONTH",
+          "VARCHAR",
+          "完了予定月"
+        ]
+      ],
+      "ddl": "create or replace view MART_DB.SALES.V_PIPELINE as\nselect\n    a.ACCOUNT_NAME,\n    o.STAGE,\n    o.AMOUNT,\n    date_trunc('month', o.CLOSE_DATE) as CLOSE_MONTH\nfrom RAW_DB.SALESFORCE.OPPORTUNITY o\njoin DWH_DB.CORE.DIM_ACCOUNT a on a.ACCOUNT_ID = o.ACCOUNT_ID\nwhere o.STAGE <> 'Closed Lost';",
+      "last_read": "2026-10-17T18:02+09:00",
+      "reads_30d": 2470
+    },
+    "RAW_DB.EC.ORDERS_RAW_STREAM": {
+      "type": "stream",
+      "columns": [
+        [
+          "ORDER_ID",
+          "VARCHAR",
+          ""
+        ],
+        [
+          "CUSTOMER_ID",
+          "VARCHAR",
+          ""
+        ],
+        [
+          "ORDER_TS",
+          "VARCHAR",
+          ""
+        ],
+        [
+          "TOTAL",
+          "VARCHAR",
+          ""
+        ],
+        [
+          "STATUS",
+          "VARCHAR",
+          ""
+        ],
+        [
+          "CHANNEL",
+          "VARCHAR",
+          ""
+        ]
+      ],
+      "ddl": "CREATE OR REPLACE STREAM RAW_DB.EC.ORDERS_RAW_STREAM\n    ON TABLE RAW_DB.EC.ORDERS_RAW\n    APPEND_ONLY = TRUE;\n",
+      "last_altered": "2026-10-18T06:35+09:00",
+      "reads_30d": 8640
+    },
+    "RAW_DB.EC.CUSTOMERS_RAW": {
+      "type": "table",
+      "columns": [
+        [
+          "CUSTOMER_ID",
+          "DECIMAL(38, 0)",
+          "顧客ID"
+        ],
+        [
+          "EMAIL",
+          "VARCHAR",
+          "メールアドレス（PII）"
+        ],
+        [
+          "PREF",
+          "VARCHAR",
+          "都道府県コード"
+        ],
+        [
+          "SIGNUP_DATE",
+          "DATE",
+          "会員登録日"
+        ],
+        [
+          "BIRTH_DATE",
+          "DATE",
+          "生年月日（PII）"
+        ]
+      ],
+      "last_altered": "2026-10-18T02:00+09:00",
+      "rows": 402775,
+      "reads_30d": 30
+    },
+    "RAW_DB.EC.ORDERS_RAW": {
+      "type": "table",
+      "columns": [
+        [
+          "ORDER_ID",
+          "DECIMAL(38, 0)",
+          "注文ID"
+        ],
+        [
+          "CUSTOMER_ID",
+          "DECIMAL(38, 0)",
+          "顧客ID"
+        ],
+        [
+          "ORDER_TS",
+          "TIMESTAMPNTZ",
+          "注文日時（JST）"
+        ],
+        [
+          "TOTAL",
+          "DECIMAL(12, 2)",
+          "税込合計金額"
+        ],
+        [
+          "STATUS",
+          "VARCHAR",
+          "注文ステータス（小文字混在）"
+        ],
+        [
+          "CHANNEL",
+          "VARCHAR",
+          ""
+        ]
+      ],
+      "last_altered": "2026-10-18T06:35+09:00",
+      "rows": 1284331,
+      "reads_30d": 8640
+    },
+    "RAW_DB.EC.ORDER_ITEMS_RAW": {
+      "type": "table",
+      "columns": [
+        [
+          "ORDER_ID",
+          "DECIMAL(38, 0)",
+          "注文ID"
+        ],
+        [
+          "LINE_NO",
+          "DECIMAL(4, 0)",
+          "明細行番号"
+        ],
+        [
+          "PRODUCT_ID",
+          "VARCHAR",
+          "商品コード"
+        ],
+        [
+          "QTY",
+          "DECIMAL(6, 0)",
+          "数量"
+        ],
+        [
+          "UNIT_PRICE",
+          "DECIMAL(10, 2)",
+          "税込単価"
+        ]
+      ],
+      "last_altered": "2026-10-18T06:35+09:00",
+      "rows": 3902118,
+      "reads_30d": 31
+    },
+    "RAW_DB.EC.PREF_MASTER": {
+      "type": "table",
+      "columns": [
+        [
+          "PREF_CODE",
+          "VARCHAR",
+          "都道府県コード（JIS X 0401）"
+        ],
+        [
+          "PREF_NAME",
+          "VARCHAR",
+          "都道府県名"
+        ]
+      ],
+      "last_altered": "2025-04-01T09:00+09:00",
+      "rows": 47,
+      "reads_30d": 30
+    },
+    "RAW_DB.EC.PRODUCTS_RAW": {
+      "type": "table",
+      "columns": [
+        [
+          "PRODUCT_ID",
+          "VARCHAR",
+          "商品コード"
+        ],
+        [
+          "PRODUCT_NAME",
+          "VARCHAR",
+          "商品名"
+        ],
+        [
+          "CATEGORY",
+          "VARCHAR",
+          "大分類"
+        ],
+        [
+          "LIST_PRICE",
+          "DECIMAL(10, 2)",
+          ""
+        ]
+      ],
+      "last_altered": "2026-10-18T02:00+09:00",
+      "rows": 18420,
+      "reads_30d": 744
+    },
+    "RAW_DB.SALESFORCE.ACCOUNT": {
+      "type": "table",
+      "columns": [
+        [
+          "ACCOUNT_ID",
+          "VARCHAR",
+          "取引先ID"
+        ],
+        [
+          "NAME",
+          "VARCHAR",
+          "取引先名"
+        ],
+        [
+          "INDUSTRY",
+          "VARCHAR",
+          "業種"
+        ],
+        [
+          "OWNER_ID",
+          "VARCHAR",
+          ""
+        ]
+      ],
+      "last_altered": "2026-10-18T01:10+09:00",
+      "rows": 9812,
+      "reads_30d": 30
+    },
+    "RAW_DB.SALESFORCE.OPPORTUNITY": {
+      "type": "table",
+      "columns": [
+        [
+          "OPP_ID",
+          "VARCHAR",
+          "商談ID"
+        ],
+        [
+          "ACCOUNT_ID",
+          "VARCHAR",
+          "取引先ID"
+        ],
+        [
+          "STAGE",
+          "VARCHAR",
+          "フェーズ"
+        ],
+        [
+          "AMOUNT",
+          "DECIMAL(14, 0)",
+          "見込金額"
+        ],
+        [
+          "CLOSE_DATE",
+          "DATE",
+          "完了予定日"
+        ]
+      ],
+      "last_altered": "2026-10-18T01:10+09:00",
+      "rows": 41006,
+      "reads_30d": 412
+    },
+    "RAW_DB.WEB.PAGE_VIEWS": {
+      "type": "table",
+      "columns": [
+        [
+          "VIEW_ID",
+          "VARCHAR",
+          ""
+        ],
+        [
+          "SESSION_ID",
+          "VARCHAR",
+          "セッションID"
+        ],
+        [
+          "CUSTOMER_ID",
+          "DECIMAL(38, 0)",
+          "ログイン時のみ"
+        ],
+        [
+          "URL",
+          "VARCHAR",
+          ""
+        ],
+        [
+          "UTM_SOURCE",
+          "VARCHAR",
+          "流入元"
+        ],
+        [
+          "VIEWED_AT",
+          "TIMESTAMPNTZ",
+          "閲覧日時"
+        ]
+      ],
+      "last_altered": "2026-10-18T06:00+09:00",
+      "rows": 88301552,
+      "reads_30d": 30
+    },
+    "RAW_DB.WEB.SESSIONS_LEGACY": {
+      "type": "table",
+      "columns": [
+        [
+          "SESSION_ID",
+          "VARCHAR",
+          ""
+        ],
+        [
+          "CUSTOMER_ID",
+          "DECIMAL(38, 0)",
+          ""
+        ],
+        [
+          "STARTED_AT",
+          "TIMESTAMPNTZ",
+          ""
+        ],
+        [
+          "REFERRER",
+          "VARCHAR",
+          ""
+        ]
+      ],
+      "last_altered": "2026-06-02T04:00+09:00",
+      "rows": 12055190,
+      "reads_30d": 0
+    },
+    "MART_DB.MARKETING.CUSTOMER_SEGMENT": {
+      "type": "table",
+      "columns": [
+        [
+          "CUSTOMER_ID",
+          "NUMBER(38,0)",
+          ""
+        ],
+        [
+          "SEGMENT",
+          "VARCHAR(5)",
+          ""
+        ]
+      ],
+      "ddl": "CREATE OR REPLACE TABLE MART_DB.MARKETING.CUSTOMER_SEGMENT AS\nSELECT CUSTOMER_ID,\n       CASE WHEN LTV_AMOUNT >= 100000 THEN 'VIP'\n            WHEN LTV_AMOUNT >= 20000  THEN 'LOYAL'\n            ELSE 'LIGHT' END AS SEGMENT\nFROM MART_DB.SALES.V_CUSTOMER_LTV;",
+      "rows": 402775,
+      "last_altered": "2026-10-01T10:14+09:00",
+      "reads_30d": 6400
+    }
+  },
+  "tasks": {
+    "DWH_DB.CORE.T_LOAD_ORDERS": {
+      "state": "started",
+      "schedule": "5 MINUTE",
+      "last_run": {
+        "at": "2026-10-18T06:35+09:00",
+        "status": "SUCCEEDED"
+      }
+    },
+    "DWH_DB.CORE.T_BUILD_ITEMS": {
+      "state": "started",
+      "schedule": "USING CRON 0 3 * * * Asia/Tokyo",
+      "last_run": {
+        "at": "2026-10-18T03:00+09:00",
+        "status": "FAILED",
+        "error": "SQL compilation error: error line 4 at position 23\ninvalid identifier 'I.UNIT_PRICE'"
+      }
+    },
+    "MART_DB.SALES.T_DAILY_SALES": {
+      "state": "started",
+      "schedule": "USING CRON 30 6 * * * Asia/Tokyo",
+      "last_run": {
+        "at": "2026-10-18T06:30+09:00",
+        "status": "SUCCEEDED"
+      }
+    }
+  },
+  "ddl_history": [
+    {
+      "object": "MART_DB.SALES.V_PIPELINE",
+      "at": "2026-10-16T15:22+09:00",
+      "user": "TANAKA",
+      "role": "SYSADMIN",
+      "query_type": "CREATE_VIEW",
+      "query_text": "create or replace view MART_DB.SALES.V_PIPELINE as\nselect\n    a.ACCOUNT_NAME,\n    o.STAGE,\n    o.AMOUNT,\n    date_trunc('month', o.CLOSE_DATE) as CLOSE_MONTH\nfrom RAW_DB.SALESFORCE.OPPORTUNITY o\njoin DWH_DB.CORE.DIM_ACCOUNT a on a.ACCOUNT_ID = o.ACCOUNT_ID\nwhere o.STAGE <> 'Closed Lost';"
+    },
+    {
+      "object": "MART_DB.MARKETING.CUSTOMER_SEGMENT",
+      "at": "2026-10-01T10:14+09:00",
+      "user": "SUZUKI",
+      "role": "ANALYST",
+      "query_type": "CREATE_TABLE_AS_SELECT",
+      "query_text": "CREATE OR REPLACE TABLE MART_DB.MARKETING.CUSTOMER_SEGMENT AS\nSELECT CUSTOMER_ID,\n       CASE WHEN LTV_AMOUNT >= 100000 THEN 'VIP'\n            WHEN LTV_AMOUNT >= 20000  THEN 'LOYAL'\n            ELSE 'LIGHT' END AS SEGMENT\nFROM MART_DB.SALES.V_CUSTOMER_LTV;"
+    },
+    {
+      "object": "DWH_DB.CORE.DIM_CUSTOMER",
+      "at": "2026-10-18T02:20+09:00",
+      "user": "SVC_AIRFLOW",
+      "role": "ETL",
+      "query_type": "CREATE_TABLE_AS_SELECT",
+      "query_text": "CREATE OR REPLACE TABLE DWH_DB.CORE.DIM_CUSTOMER AS ..."
+    }
+  ],
+  "access_edges": [
+    {
+      "source": "RAW_DB.EC.PRODUCTS_RAW",
+      "target": "DWH_DB.CORE.DIM_PRODUCT",
+      "last_at": "2026-10-18T02:05+09:00"
+    },
+    {
+      "source": "RAW_DB.EC.ORDER_ITEMS_RAW",
+      "target": "DWH_DB.CORE.FCT_ORDER_ITEMS",
+      "last_at": "2026-10-17T03:01+09:00"
+    },
+    {
+      "source": "DWH_DB.CORE.DIM_PRODUCT",
+      "target": "DWH_DB.CORE.FCT_ORDER_ITEMS",
+      "last_at": "2026-10-17T03:01+09:00"
+    },
+    {
+      "source": "RAW_DB.SALESFORCE.ACCOUNT",
+      "target": "DWH_DB.CORE.DIM_ACCOUNT",
+      "last_at": "2026-10-18T01:30+09:00"
+    },
+    {
+      "source": "RAW_DB.EC.PREF_MASTER",
+      "target": "DWH_DB.CORE.DIM_CUSTOMER",
+      "last_at": "2026-10-18T02:20+09:00"
+    },
+    {
+      "source": "RAW_DB.EC.CUSTOMERS_RAW",
+      "target": "DWH_DB.CORE.DIM_CUSTOMER",
+      "last_at": "2026-10-18T02:20+09:00"
+    },
+    {
+      "source": "RAW_DB.WEB.PAGE_VIEWS",
+      "target": "DWH_DB.CORE.FCT_PAGE_VIEWS",
+      "last_at": "2026-10-18T06:10+09:00"
+    },
+    {
+      "source": "RAW_DB.WEB.SESSIONS_LEGACY",
+      "target": "DWH_DB.CORE.FCT_SESSIONS_OLD",
+      "last_at": "2026-06-02T05:00+09:00"
+    },
+    {
+      "source": "RAW_DB.EC.ORDERS_RAW_STREAM",
+      "target": "DWH_DB.CORE.FCT_ORDERS",
+      "last_at": "2026-10-18T06:35+09:00"
+    },
+    {
+      "source": "DWH_DB.CORE.FCT_ORDERS",
+      "target": "MART_DB.SALES.DAILY_SALES",
+      "last_at": "2026-10-18T06:31+09:00"
+    },
+    {
+      "source": "DWH_DB.CORE.DIM_CUSTOMER",
+      "target": "MART_DB.SALES.DAILY_SALES",
+      "last_at": "2026-10-18T06:31+09:00"
+    },
+    {
+      "source": "RAW_DB.EC.ORDERS_RAW",
+      "target": "RAW_DB.EC.ORDERS_RAW_STREAM",
+      "last_at": "2026-10-18T06:35+09:00"
+    },
+    {
+      "source": "MART_DB.SALES.V_CUSTOMER_LTV",
+      "target": "MART_DB.MARKETING.CUSTOMER_SEGMENT",
+      "last_at": "2026-10-01T10:14+09:00"
+    }
+  ],
+  "dependencies": [
+    {
+      "source": "RAW_DB.EC.PRODUCTS_RAW",
+      "target": "DWH_DB.CORE.DIM_PRODUCT"
+    },
+    {
+      "source": "DWH_DB.CORE.FCT_ORDERS",
+      "target": "MART_DB.MARKETING.V_CHANNEL_CONVERSION"
+    },
+    {
+      "source": "DWH_DB.CORE.FCT_PAGE_VIEWS",
+      "target": "MART_DB.MARKETING.V_CHANNEL_CONVERSION"
+    },
+    {
+      "source": "DWH_DB.CORE.FCT_SESSIONS_OLD",
+      "target": "MART_DB.MARKETING.V_SESSION_REPORT_OLD"
+    },
+    {
+      "source": "DWH_DB.CORE.FCT_ORDER_ITEMS",
+      "target": "MART_DB.SALES.V_CATEGORY_SALES"
+    },
+    {
+      "source": "DWH_DB.CORE.DIM_PRODUCT",
+      "target": "MART_DB.SALES.V_CATEGORY_SALES"
+    },
+    {
+      "source": "DWH_DB.CORE.FCT_ORDERS",
+      "target": "MART_DB.SALES.V_CUSTOMER_LTV"
+    },
+    {
+      "source": "DWH_DB.CORE.DIM_CUSTOMER",
+      "target": "MART_DB.SALES.V_CUSTOMER_LTV"
+    },
+    {
+      "source": "RAW_DB.SALESFORCE.OPPORTUNITY",
+      "target": "MART_DB.SALES.V_PIPELINE"
+    },
+    {
+      "source": "DWH_DB.CORE.DIM_ACCOUNT",
+      "target": "MART_DB.SALES.V_PIPELINE"
+    },
+    {
+      "source": "RAW_DB.EC.ORDERS_RAW",
+      "target": "RAW_DB.EC.ORDERS_RAW_STREAM"
+    }
+  ],
+  "query_errors": []
+}

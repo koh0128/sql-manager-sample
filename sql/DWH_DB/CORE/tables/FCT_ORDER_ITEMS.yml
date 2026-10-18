@@ -1,0 +1,7 @@
+name: FCT_ORDER_ITEMS
+type: table
+description: 受注明細ファクト。SP_BUILD_ORDER_ITEMS が毎日洗い替える。
+owner: data-platform
+tags:
+- ec
+- fact

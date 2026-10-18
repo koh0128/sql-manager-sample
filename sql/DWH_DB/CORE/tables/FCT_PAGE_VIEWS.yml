@@ -1,0 +1,17 @@
+name: FCT_PAGE_VIEWS
+type: table
+description: ページビューファクト。流入チャネルを正規化。
+owner: web-analytics
+tags:
+- web
+- fact
+meta:
+  refresh: 'Airflow: web_daily'
+  schedule: 毎時
+columns:
+- name: SESSION_ID
+  description: セッションID
+- name: VIEW_DATE
+  description: 閲覧日
+- name: SOURCE_CHANNEL
+  description: 流入チャネル（未設定は direct）

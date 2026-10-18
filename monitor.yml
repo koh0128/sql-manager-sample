@@ -1,0 +1,28 @@
+# Snowflake 監視の設定（tools/snapshot.py・tools/compare.py が読む）
+
+# 取得対象のデータベース
+databases: [RAW_DB, DWH_DB, MART_DB]
+
+# warn  : CD 導入前。許可リスト外の DDL 実行は「警告」
+# strict: CD 導入後。deploy_users 以外の DDL 実行はすべて「異常」
+mode: warn
+
+# GitHub Actions からデプロイするサービスユーザー（deploy.yml で使うユーザー）
+deploy_users: [SVC_GITHUB_DEPLOY]
+
+# 通常運用として DDL を実行してよいユーザー（Airflow の日次 CTAS など）
+allowed_ddl:
+  - user: SVC_AIRFLOW
+    objects: ["DWH_DB.CORE.*"]
+    note: Airflow の日次 CTAS（dim_daily / sfdc_daily / web_daily）
+
+# 監視から外すオブジェクト（作業用スキーマなど）
+ignore_objects:
+  - "*.SANDBOX.*"
+  - "*.INFORMATION_SCHEMA.*"
+
+# この日数以上、書き込み（ビューは参照）が無いものを「放置」とする
+stale_days: 30
+
+# QUERY_HISTORY / ACCESS_HISTORY をさかのぼる日数
+lookback_days: 7

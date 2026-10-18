@@ -1,0 +1,10 @@
+name: ORDERS_RAW
+type: table
+description: ECサイトの受注ヘッダ。外部ETLが5分毎に追記する。
+owner: data-platform
+tags:
+- ec
+- raw
+meta:
+  refresh: 外部ETL
+  schedule: 5分毎

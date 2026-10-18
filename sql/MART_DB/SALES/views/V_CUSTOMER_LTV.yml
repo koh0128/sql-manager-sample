@@ -1,0 +1,16 @@
+name: V_CUSTOMER_LTV
+type: view
+description: 顧客ごとの累計購入金額（LTV）。
+owner: sales-analytics
+tags:
+- sales
+- customer
+columns:
+- name: CUSTOMER_ID
+  description: 顧客ID
+- name: AGE_BAND
+  description: 年代
+- name: FIRST_ORDER_DATE
+  description: 初回購入日
+- name: LTV_AMOUNT
+  description: 累計購入金額

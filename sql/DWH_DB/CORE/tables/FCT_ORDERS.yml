@@ -1,0 +1,14 @@
+name: FCT_ORDERS
+type: table
+description: 受注ファクト。1行=1注文。売上系マートの起点。
+owner: data-platform
+tags:
+- ec
+- fact
+meta:
+  sla: 5分以内に反映
+columns:
+- name: ORDER_ID
+  tests:
+  - not_null
+  - unique

@@ -1,0 +1,9 @@
+name: PREF_MASTER
+type: table
+description: 都道府県マスタ（固定値）。
+owner: data-platform
+tags:
+- ec
+- master
+meta:
+  refresh: 手動（固定値）

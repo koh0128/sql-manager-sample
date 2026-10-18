@@ -1,0 +1,7 @@
+name: ORDERS_RAW_STREAM
+type: stream
+description: ORDERS_RAW の追記差分を取るストリーム。T_LOAD_ORDERS が消費する。
+owner: data-platform
+tags:
+- ec
+- raw

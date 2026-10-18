@@ -1,0 +1,19 @@
+name: V_CHANNEL_CONVERSION
+type: view
+description: 流入チャネル別のセッション数・注文数・CVR。
+owner: web-analytics
+tags:
+- web
+- marketing
+- kpi
+columns:
+- name: VIEW_DATE
+  description: 日付
+- name: SOURCE_CHANNEL
+  description: 流入チャネル
+- name: SESSIONS
+  description: セッション数
+- name: ORDERS
+  description: 注文数
+- name: CVR
+  description: ORDERS / SESSIONS

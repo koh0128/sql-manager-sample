@@ -1,0 +1,6 @@
+name: T_BUILD_ITEMS
+type: task
+description: SP_BUILD_ORDER_ITEMS を呼び出して明細ファクトを作り直す。
+owner: data-platform
+tags:
+- ec

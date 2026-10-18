@@ -1,0 +1,11 @@
+[sqlfluff]
+dialect = snowflake
+templater = raw
+# まずは「明らかな問題」だけを検出する。書式（インデント・大文字小文字）は段階的に厳しくする
+rules = core
+exclude_rules = LT01, LT02, LT05, LT09, CP01, CP02, CP03, CP05, AL01, AM04, ST06
+max_line_length = 160
+large_file_skip_byte_limit = 0
+
+[sqlfluff:indentation]
+tab_space_size = 4

@@ -1,0 +1,10 @@
+name: DIM_ACCOUNT
+type: table
+description: ''
+owner: sales-ops
+tags:
+- salesforce
+- dim
+meta:
+  refresh: 'Airflow: sfdc_daily'
+  schedule: 毎日01:30

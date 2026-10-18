@@ -1,0 +1,37 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Snowflake オブジェクトのメタデータ（sql/**/<NAME>.yml）",
+  "type": "object",
+  "required": ["name", "type", "description", "owner"],
+  "additionalProperties": false,
+  "properties": {
+    "name": {"type": "string", "pattern": "^[A-Z0-9_$]+$", "description": "ファイル名と同じ（大文字）"},
+    "type": {"enum": ["table", "view", "dynamic_table", "stream", "task", "procedure", "function", "stage", "file_format"]},
+    "description": {"type": "string"},
+    "owner": {"type": "string", "description": "担当チーム（例: data-platform）"},
+    "tags": {"type": "array", "items": {"type": "string", "pattern": "^[a-z0-9_-]+$"}, "uniqueItems": true},
+    "meta": {
+      "type": "object",
+      "description": "自由記述。以下は画面で使うキー",
+      "properties": {
+        "refresh": {"type": "string", "description": "更新方法（例: 'Airflow: dim_daily'）。グラフの線のラベルになる"},
+        "schedule": {"type": "string", "description": "更新頻度（タスク以外で動くもの。例: '毎日02:20'）"},
+        "sla": {"type": "string"},
+        "pii": {"type": "boolean"}
+      }
+    },
+    "columns": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name"],
+        "additionalProperties": false,
+        "properties": {
+          "name": {"type": "string", "pattern": "^[A-Z0-9_$]+$"},
+          "description": {"type": "string"},
+          "tests": {"type": "array", "items": {"type": "string"}, "description": "dbt 移行時にそのまま使う（今は記録のみ）"}
+        }
+      }
+    }
+  }
+}

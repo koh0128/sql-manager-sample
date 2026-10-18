@@ -1,0 +1,9 @@
+.venv/
+__pycache__/
+*.pyc
+build/
+.DS_Store
+# 秘密鍵を誤ってコミットしない
+*.p8
+*.pem
+.env

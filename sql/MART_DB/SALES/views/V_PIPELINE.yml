@@ -1,0 +1,16 @@
+name: V_PIPELINE
+type: view
+description: 営業パイプライン（フェーズ別見込金額）。
+owner: sales-ops
+tags:
+- salesforce
+- sales
+columns:
+- name: ACCOUNT_NAME
+  description: 取引先名
+- name: STAGE
+  description: フェーズ
+- name: AMOUNT
+  description: 見込金額
+- name: CLOSE_MONTH
+  description: 完了予定月

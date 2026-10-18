@@ -1,0 +1,6 @@
+name: T_LOAD_ORDERS
+type: task
+description: ストリームから FCT_ORDERS へ MERGE する。
+owner: data-platform
+tags:
+- ec

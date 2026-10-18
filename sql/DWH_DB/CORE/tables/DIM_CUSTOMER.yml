@@ -1,0 +1,19 @@
+name: DIM_CUSTOMER
+type: table
+description: 顧客ディメンション。PIIを除外し年代に丸めたもの。
+owner: data-platform
+tags:
+- ec
+- dim
+meta:
+  refresh: 'Airflow: dim_daily'
+  schedule: 毎日02:20
+columns:
+- name: CUSTOMER_ID
+  description: 顧客ID
+- name: PREFECTURE
+  description: 都道府県名
+- name: SIGNUP_DATE
+  description: 会員登録日
+- name: AGE_BAND
+  description: 年代（10歳刻み）

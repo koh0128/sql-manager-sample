@@ -1,0 +1,5 @@
+# グラフ生成・チェック（Snowflake 接続なしで動く部分）
+sqlglot==30.23.0
+PyYAML==6.0.3
+jsonschema==4.26.0
+sqlfluff==4.4.0

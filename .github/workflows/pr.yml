@@ -1,0 +1,65 @@
+name: pr
+
+on:
+  pull_request:
+    paths:
+      - "sql/**"
+      - "tools/**"
+      - "site/**"
+      - "monitor.yml"
+      - ".sqlfluff"
+      - "requirements*.txt"
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    env:
+      BASE_REF: origin/${{ github.base_ref }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - run: pip install -r requirements.txt
+
+      - name: 変更された SQL / yml
+        id: changed
+        run: |
+          git diff --name-only "$BASE_REF...HEAD" -- sql/ > changed.txt
+          cat changed.txt
+          grep '\.sql$' changed.txt > changed_sql.txt || true
+
+      - name: 規約チェック（ファイルの場所・yml の必須項目）
+        run: python tools/validate_meta.py $(cat changed.txt)
+
+      - name: SQL lint
+        run: |
+          if [ -s changed_sql.txt ]; then
+            sqlfluff lint $(cat changed_sql.txt) --disable-progress-bar --ignore parsing --format github-annotation-native
+          else
+            echo "変更された SQL はありません"
+          fi
+
+      - name: グラフ生成（解析できない SQL が無いか）
+        run: python tools/repo_graph.py --check
+
+      - name: 影響範囲を PR にコメント
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ github.event.pull_request.number }}
+        run: |
+          python tools/impact.py --base "$BASE_REF" > impact.md
+          cat impact.md >> "$GITHUB_STEP_SUMMARY"
+          gh pr comment "$PR" --body-file impact.md --edit-last || gh pr comment "$PR" --body-file impact.md
+
+      - name: サイトのビルド確認
+        run: python tools/build_site.py

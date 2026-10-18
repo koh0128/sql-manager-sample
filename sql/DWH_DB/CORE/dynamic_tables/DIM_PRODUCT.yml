@@ -1,0 +1,15 @@
+name: DIM_PRODUCT
+type: dynamic_table
+description: 商品ディメンション。
+owner: data-platform
+tags:
+- ec
+- dim
+- master
+columns:
+- name: PRODUCT_ID
+  description: 商品コード
+- name: PRODUCT_NAME
+  description: 商品名
+- name: CATEGORY
+  description: 大分類

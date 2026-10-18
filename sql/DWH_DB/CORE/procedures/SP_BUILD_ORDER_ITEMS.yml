@@ -1,0 +1,6 @@
+name: SP_BUILD_ORDER_ITEMS
+type: procedure
+description: 受注明細と商品マスタを結合して FCT_ORDER_ITEMS を全件洗い替えする。
+owner: data-platform
+tags:
+- ec

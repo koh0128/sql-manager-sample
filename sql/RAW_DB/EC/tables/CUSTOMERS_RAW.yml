@@ -1,0 +1,12 @@
+name: CUSTOMERS_RAW
+type: table
+description: 会員マスタ。個人情報を含むため参照ロールを限定。
+owner: data-platform
+tags:
+- ec
+- raw
+- pii
+meta:
+  refresh: 外部ETL
+  schedule: 毎日02:00
+  pii: true

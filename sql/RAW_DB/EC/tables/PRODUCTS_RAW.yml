@@ -1,0 +1,11 @@
+name: PRODUCTS_RAW
+type: table
+description: 商品マスタ（基幹システムから日次連携）。
+owner: data-platform
+tags:
+- ec
+- raw
+- master
+meta:
+  refresh: 外部ETL
+  schedule: 毎日02:00

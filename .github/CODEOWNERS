@@ -1,0 +1,11 @@
+# DB・スキーマごとのレビュー担当（GitHub のチーム名に置き換えてください）
+/sql/RAW_DB/            @your-org/data-platform
+/sql/DWH_DB/            @your-org/data-platform
+/sql/MART_DB/SALES/     @your-org/sales-analytics
+/sql/MART_DB/MARKETING/ @your-org/web-analytics
+
+# 仕組み（ツール・監視設定・ワークフロー）
+/tools/                       @your-org/data-platform
+/site/                        @your-org/data-platform
+/monitor.yml                  @your-org/data-platform
+/.github/                     @your-org/data-platform

@@ -1,0 +1,84 @@
+name: site
+
+# リポジトリの SQL からグラフを作り、Snowflake の状態を重ねて GitHub Pages に公開する。
+# 異常（タスク失敗・手動変更・手動デプロイ・未登録など）は Issue に同期する。
+on:
+  push:
+    branches: [main]
+    paths:
+      - "sql/**"
+      - "tools/**"
+      - "site/**"
+      - "monitor.yml"
+  schedule:
+    - cron: "7 * * * *"   # 毎時7分（UTC）
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+  issues: write
+
+concurrency:
+  group: site
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - run: pip install -r requirements-snowflake.txt
+
+      - id: pages
+        uses: actions/configure-pages@v5
+
+      # リポジトリ変数 SNOWFLAKE_ACCOUNT が未設定の間は、リポジトリの SQL だけでサイトを作る
+      - name: Snowflake の状態を取得
+        id: snapshot
+        if: ${{ vars.SNOWFLAKE_ACCOUNT != '' }}
+        env:
+          SNOWFLAKE_ACCOUNT: ${{ vars.SNOWFLAKE_ACCOUNT }}
+          SNOWFLAKE_USER: ${{ vars.SNOWFLAKE_USER }}
+          SNOWFLAKE_ROLE: ${{ vars.SNOWFLAKE_ROLE }}
+          SNOWFLAKE_WAREHOUSE: ${{ vars.SNOWFLAKE_WAREHOUSE }}
+          SNOWFLAKE_PRIVATE_KEY: ${{ secrets.SNOWFLAKE_PRIVATE_KEY }}
+          SNOWFLAKE_PRIVATE_KEY_PASSPHRASE: ${{ secrets.SNOWFLAKE_PRIVATE_KEY_PASSPHRASE }}
+          NO_ACCESS_HISTORY: ${{ vars.SNOWFLAKE_NO_ACCESS_HISTORY }}
+        run: python tools/snapshot.py $([ "$NO_ACCESS_HISTORY" = "true" ] && echo --no-access-history)
+
+      - name: サイトを生成
+        run: |
+          if [ -f build/state.json ]; then
+            python tools/build_site.py --state build/state.json
+          else
+            python tools/build_site.py
+          fi
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: build/site
+
+      - name: 異常を Issue に同期
+        if: ${{ steps.snapshot.outcome == 'success' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SITE_URL: ${{ steps.pages.outputs.base_url }}
+        run: python tools/sync_issues.py --site-url "$SITE_URL"
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

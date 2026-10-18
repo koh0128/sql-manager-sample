@@ -1,0 +1,10 @@
+name: DAILY_SALES
+type: table
+description: 日次売上。経営ダッシュボードの売上KPIの元データ。
+owner: sales-analytics
+tags:
+- sales
+- daily
+- kpi
+meta:
+  sla: 毎朝07:00までに前日分

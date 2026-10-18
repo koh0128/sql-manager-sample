@@ -1,0 +1,7 @@
+CREATE OR REPLACE TABLE RAW_DB.EC.ORDER_ITEMS_RAW (
+    ORDER_ID    NUMBER(38,0) NOT NULL COMMENT '注文ID',
+    LINE_NO     NUMBER(4,0)  NOT NULL COMMENT '明細行番号',
+    PRODUCT_ID  VARCHAR               COMMENT '商品コード',
+    QTY         NUMBER(6,0)           COMMENT '数量',
+    UNIT_PRICE  NUMBER(10,2)          COMMENT '税込単価'
+);

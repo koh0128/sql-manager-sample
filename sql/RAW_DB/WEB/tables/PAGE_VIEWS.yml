@@ -1,0 +1,10 @@
+name: PAGE_VIEWS
+type: table
+description: Webのページビューログ。
+owner: web-analytics
+tags:
+- web
+- raw
+meta:
+  refresh: Snowpipe
+  schedule: 随時

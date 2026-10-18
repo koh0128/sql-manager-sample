@@ -1,0 +1,7 @@
+name: T_DAILY_SALES
+type: task
+description: 前日分の日次売上を DAILY_SALES に追記する。
+owner: sales-analytics
+tags:
+- sales
+- daily

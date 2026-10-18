@@ -1,0 +1,7 @@
+name: V_SESSION_REPORT_OLD
+type: view
+description: 旧セッションレポート。
+owner: web-analytics
+tags:
+- web
+- legacy

@@ -1,0 +1,10 @@
+name: OPPORTUNITY
+type: table
+description: Salesforce の商談。
+owner: sales-ops
+tags:
+- salesforce
+- raw
+meta:
+  refresh: Fivetran
+  schedule: 毎日01:10

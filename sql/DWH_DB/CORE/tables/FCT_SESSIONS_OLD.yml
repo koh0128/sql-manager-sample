@@ -1,0 +1,9 @@
+name: FCT_SESSIONS_OLD
+type: table
+description: 旧セッション集計。削除候補。
+owner: web-analytics
+tags:
+- web
+- legacy
+meta:
+  refresh: 手動

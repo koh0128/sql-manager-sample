@@ -1,0 +1,11 @@
+name: SESSIONS_LEGACY
+type: table
+description: 旧計測タグのセッション。2026年6月に計測停止。
+owner: web-analytics
+tags:
+- web
+- raw
+- legacy
+meta:
+  refresh: 旧計測タグ（停止済み）
+  schedule: 停止中

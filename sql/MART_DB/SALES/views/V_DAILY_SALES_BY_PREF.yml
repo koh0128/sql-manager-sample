@@ -1,0 +1,7 @@
+name: V_DAILY_SALES_BY_PREF
+type: view
+description: 都道府県別の日次売上（新規追加・未デプロイの例）。
+owner: sales-analytics
+tags:
+- sales
+- daily

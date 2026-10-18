@@ -1,0 +1,7 @@
+CREATE OR REPLACE TABLE RAW_DB.SALESFORCE.OPPORTUNITY (
+    OPP_ID      VARCHAR NOT NULL COMMENT '商談ID',
+    ACCOUNT_ID  VARCHAR          COMMENT '取引先ID',
+    STAGE       VARCHAR          COMMENT 'フェーズ',
+    AMOUNT      NUMBER(14,0)     COMMENT '見込金額',
+    CLOSE_DATE  DATE             COMMENT '完了予定日'
+);
