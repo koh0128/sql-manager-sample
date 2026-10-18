@@ -2,26 +2,28 @@
 
 Snowflake の SQL（テーブル・ビュー・タスク・プロシージャ等）を GitHub で管理し、
 **リポジトリの SQL から作ったデータフロー図とドキュメント** を GitHub Pages で見られるようにする仕組みです。
-Snowflake に接続できる場合は、最終更新・行数・30日の参照回数も図に表示します。
+
+いまは最初のステップとして、**SQL ファイルを集めてデータフロー（リネージ）を整理する** ことに絞っています。
+Snowflake には接続しません（最終更新・行数・参照回数などの取得は一旦除外し、`_archive/snowflake/` に退避しています）。
 
 > いま `sql/` に入っている RAW_DB / DWH_DB / MART_DB はサンプルです。実際のオブジェクトに置き換えてください（下の「導入手順」）。
 
 ## 仕組み
 
 ```
+各自の PC の SQL ──(place_sql.py)──▶ sql/<DB>/<SCHEMA>/<種別>/<NAME>.sql
 リポジトリの SQL・yml ──(repo_graph.py)──▶ graph.json   … テーブル・カラムの依存、変換式、説明
-Snowflake（任意）    ──(snapshot.py)───▶ state.json   … 最終更新・行数・カラム型・30日参照回数
-                         │
-                    (enrich.py) 参考情報を付ける
-                         ▼
-              lineage.json ──(build_site.py)──▶ GitHub Pages
+                                  │
+                           (build_site.py)
+                                  ▼
+                     lineage.json ＋ 画面 ──▶ GitHub Pages
 ```
 
 画面でできること:
 - テーブル単位のデータフロー図（DB/スキーマ・種別・タグ・オーナーで絞り込み、上流・下流のハイライト、Nホップ表示、検索）
 - カラム単位のリネージ図（カラム間の線に変換式）
 - 各オブジェクトの説明・オーナー・タグ・カラム説明・SQL・GitHub のファイルへのリンク
-- 後続の数（直接／下流全体）・30日参照回数・最終更新・更新頻度。ノードの色を「更新の新しさ／参照回数／DB別」で切り替え
+- 後続の数（直接／下流全体）と、SQL・yml から分かる更新方法・更新頻度。ノードの色は DB 別
 - 説明が未記入のオブジェクトとカラム説明の記入率
 
 ## フォルダ構成
@@ -51,54 +53,29 @@ columns:
   - name: AGE_BAND
     description: 年代（10歳刻み）
 ```
-型・行数・更新日時など Snowflake から取れる情報は yml に書きません（取得して表示します）。
 
 ## ローカルで試す
 
 ```bash
 make setup     # .venv を作って依存をインストール
-make sample    # サンプルの Snowflake 情報でサイトを作る（Snowflake 接続不要）
+make site      # リポジトリの SQL からサイトを作る
 make serve     # http://localhost:8000 で表示
 ```
-`make site` はリポジトリの SQL だけで作ります（更新時刻・参照回数は「—」）。
 その他: `make check`（規約チェック）、`make lint`（sqlfluff）、`make graph`（graph.json のみ）。
 
 ## 導入手順
 
-1. **Snowflake に読み取り用のサービスユーザーを作る**（キーペア認証。Pages に更新時刻などを出さないなら不要）
-   ```sql
-   CREATE ROLE SQL_MGMT_READER;
-   GRANT USAGE ON WAREHOUSE <WH_XS> TO ROLE SQL_MGMT_READER;
-   GRANT IMPORTED PRIVILEGES ON DATABASE SNOWFLAKE TO ROLE SQL_MGMT_READER;   -- 参照回数（ACCESS_HISTORY）用
-   -- 対象 DB ごとに（FUTURE GRANTS も同様に）
-   GRANT USAGE ON DATABASE <DB> TO ROLE SQL_MGMT_READER;
-   GRANT USAGE ON ALL SCHEMAS IN DATABASE <DB> TO ROLE SQL_MGMT_READER;
-   GRANT REFERENCES ON ALL TABLES IN DATABASE <DB> TO ROLE SQL_MGMT_READER;
-   GRANT REFERENCES ON ALL VIEWS IN DATABASE <DB> TO ROLE SQL_MGMT_READER;
-   CREATE USER SVC_SQL_MGMT TYPE = SERVICE DEFAULT_ROLE = SQL_MGMT_READER RSA_PUBLIC_KEY = '<公開鍵>';
-   GRANT ROLE SQL_MGMT_READER TO USER SVC_SQL_MGMT;
-   ```
-   参照回数は ACCESS_HISTORY（Enterprise Edition 以上）から取ります。使えない場合はリポジトリ変数 `SNOWFLAKE_NO_ACCESS_HISTORY=true`。
-   既存オブジェクトの書き出し（手順3）にはオブジェクトの定義を見る権限も必要です。
-2. **`config.yml` を編集**：対象 `databases` と除外する `ignore_objects`。
-3. **既存オブジェクトを書き出す**（サンプルの `sql/` は削除してから）
-   ```bash
-   pip install -r requirements-snowflake.txt
-   export SNOWFLAKE_ACCOUNT=... SNOWFLAKE_USER=SVC_SQL_MGMT SNOWFLAKE_ROLE=SQL_MGMT_READER \
-          SNOWFLAKE_WAREHOUSE=... SNOWFLAKE_PRIVATE_KEY_PATH=~/.ssh/svc_sql_mgmt.p8
-   python tools/export_ddl.py
-   ```
-4. **各自の PC にある SQL を回収**：ブランチを切って
+1. **サンプルの `sql/` を削除**して、ブランチを切る
+2. **各自の PC にある SQL を回収**
    ```bash
    python tools/place_sql.py ~/Documents/my_sqls            # 確認
    python tools/place_sql.py ~/Documents/my_sqls --apply    # 新規のものを配置
    ```
-   「内容が異なる」と出たものは、どちらが正しいか確認してから `--overwrite` するか手で直す。yml の説明・オーナーを書いて PR。
-5. **GitHub の設定**
+   「内容が異なる」と出たものは、どちらが正しいか確認してから `--overwrite` するか手で直す。
+3. **yml の説明・オーナーを書き、`make check` と `make site` で確認**して PR。
+   図で線がつながらない・解析できない SQL は `make check` の警告に出ます。
+4. **GitHub の設定**
    - Settings → Pages → Source を「GitHub Actions」、Visibility を **Private**（組織内のみ）
-   - Settings → Secrets and variables → Actions（Snowflake の情報を出す場合）
-     - Variables: `SNOWFLAKE_ACCOUNT` `SNOWFLAKE_USER` `SNOWFLAKE_ROLE` `SNOWFLAKE_WAREHOUSE`（任意 `SNOWFLAKE_NO_ACCESS_HISTORY`）
-     - Secrets: `SNOWFLAKE_PRIVATE_KEY`（PEM 本文）、必要なら `SNOWFLAKE_PRIVATE_KEY_PASSPHRASE`
    - `.github/CODEOWNERS` のチーム名を実際のものに
    - main のブランチ保護で `pr` ワークフローの成功と CODEOWNERS のレビューを必須に
 
@@ -107,7 +84,7 @@ make serve     # http://localhost:8000 で表示
 | ワークフロー | いつ | 何をする |
 |---|---|---|
 | `pr` | PR | 規約チェック、sqlfluff、SQL 解析確認、**変更の影響範囲（下流のテーブル・削除カラムの利用先）を PR にコメント** |
-| `site` | main への push ＋ 毎時 | （設定があれば）Snowflake から更新時刻・行数・参照回数を取得 → サイト生成 → Pages 公開 |
+| `site` | main への push | リポジトリの SQL からサイト生成 → Pages 公開 |
 
 ## ロードマップ
 

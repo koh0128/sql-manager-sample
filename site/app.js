@@ -1,5 +1,5 @@
-/* データフローマップ。データは lineage.json（tools/enrich.py の出力）を読み込む。
-   lineage.json の形式は tools/enrich.py の build() を参照。 */
+/* データフローマップ。データは lineage.json（tools/build_site.py の出力）を読み込む。
+   lineage.json の形式は tools/build_site.py の to_lineage() を参照。 */
 const L=await fetch('lineage.json',{cache:'no-store'})
   .then(r=>{if(!r.ok)throw new Error(`HTTP ${r.status}`);return r.json();})
   .catch(e=>{document.getElementById('detail').innerHTML=`<div class="err">lineage.json を読み込めませんでした（${e.message}）。<br>make site を実行してから build/site を開いてください。</div>`;throw e;});
@@ -7,8 +7,6 @@ const L=await fetch('lineage.json',{cache:'no-store'})
 const TYPES={table:'テーブル',view:'ビュー',dynamic_table:'ダイナミックテーブル',stream:'ストリーム',task:'タスク',procedure:'プロシージャ',function:'関数',stage:'ステージ',file_format:'ファイル形式'};
 const isProc=t=>t==='task'||t==='procedure';
 const C=(t,c)=>t+'.'+c;
-const HAS_STATE=!!L.synced_at;
-const NOW=HAS_STATE?new Date(L.synced_at):new Date();
 
 const NODES=L.nodes.map(n=>({...n,tags:n.tags||[],cols:n.cols||[]}));
 const EDGES=L.edges;          // [上流, 下流, 経由する処理（タスク・プロシージャ、または yml の meta.refresh）]
@@ -28,40 +26,26 @@ const depth={};
 const dbOrder=[...new Set(NODES.map(n=>n.db))].sort((a,b)=>{const m=x=>Math.min(...NODES.filter(n=>n.db===x&&!isProc(n.type)).map(n=>depth[n.id]));return m(a)-m(b)||a.localeCompare(b);});
 const DBS={};dbOrder.forEach((db,i)=>{DBS[db]={tok:`--db${i%6+1}`,note:(L.databases?.[db]?.description||'')};});
 
-/* 利用状況：下流オブジェクト数（直接／推移的な全体）と 30日参照回数 */
+/* 利用状況：下流オブジェクト数（直接／推移的な全体） */
 const DOWN={};EDGES.forEach(([s,t])=>(DOWN[s]=DOWN[s]||new Set()).add(t));
 NODES.forEach(n=>{
   const seen=new Set(),st=[n.id];
   while(st.length)(DOWN[st.pop()]||[]).forEach(y=>{if(!seen.has(y)){seen.add(y);st.push(y);}});
-  n.down=(DOWN[n.id]||new Set()).size;n.downAll=seen.size;n.dt=n.freshAt?new Date(n.freshAt):null;
+  n.down=(DOWN[n.id]||new Set()).size;n.downAll=seen.size;
 });
-const fmtN=v=>v==null?'—':v>=10000?Math.round(v/1000)+'k':v>=1000?(v/1000).toFixed(1).replace(/\.0$/,'')+'k':String(v);
-const usageLabel=n=>`↓${n.down}（全${n.downAll}）· 参照 ${fmtN(n.reads)}${n.reads==null?'':'/30日'}`;
-
-/* 更新時期 */
-const rel=d=>{if(!d)return '—';const m=Math.max(0,Math.round((NOW-d)/60000));return m<60?`${m}分前`:m<1440?`${Math.round(m/60)}時間前`:`${Math.round(m/1440)}日前`;};
-const fmtT=s=>s?new Date(s).toLocaleString('ja-JP',{timeZone:'Asia/Tokyo',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'}):'—';
-const FR={fr1:'1時間以内',fr2:'24時間以内',fr3:'7日以内',fr4:'7日より前',fr0:'未取得'};
-const RD={rd0:'0回',rd1:'100回未満',rd2:'1,000回未満',rd3:'1,000回以上',rdx:'未取得'};
-const frBucket=d=>{if(!d)return 'fr0';const h=(NOW-d)/3600000;return h<=1?'fr1':h<=24?'fr2':h<=168?'fr3':'fr4';};
-const rdBucket=v=>v==null?'rdx':v===0?'rd0':v<100?'rd1':v<1000?'rd2':'rd3';
-const timeLabel=n=>!HAS_STATE||!n.dt&&n.type!=='view'?(n.cad?`更新頻度 ${n.cad}`:'更新 —'):
-  n.type==='view'?`データ ${rel(n.dt)}（上流基準）`:`更新 ${rel(n.dt)}${n.cad?' · '+n.cad:''}`;
+const usageLabel=n=>`↓${n.down}（全${n.downAll}）`;
+const cadLabel=n=>n.type==='view'?'ビュー':`更新 ${n.cad||'—'}`;
 const tableOf=c=>c.slice(0,c.lastIndexOf('.'));
 const colOf=c=>c.slice(c.lastIndexOf('.')+1);
 const esc=s=>String(s??'').replace(/[&<>"]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[ch]));
 const reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 const SCHEMAS={};NODES.forEach(n=>{(SCHEMAS[n.db]=SCHEMAS[n.db]||{})[n.schema]=(SCHEMAS[n.db][n.schema]||0)+1;});
-const state={color:HAS_STATE?'fresh':'db',schemas:new Set(NODES.map(n=>n.db+'.'+n.schema)),types:new Set(Object.keys(TYPES)),
+const state={schemas:new Set(NODES.map(n=>n.db+'.'+n.schema)),types:new Set(Object.keys(TYPES)),
   tag:'',owner:'',showProc:true,hops:6,sel:null,col:null,query:''};
-document.getElementById('f-color').value=state.color;
 
-/* ヘッダーの同期情報 */
-document.getElementById('sync').innerHTML=HAS_STATE
-  ?`リポジトリ <span class="mono">${esc(L.commit||'—')}</span> の SQL から生成 ／ Snowflake の更新時刻・参照回数は <span class="mono">${esc(fmtT(L.synced_at))}</span> 時点`
-  :`リポジトリ <span class="mono">${esc(L.commit||'—')}</span> の SQL から生成 ／ Snowflake の更新時刻・参照回数は未取得`;
-document.getElementById('sample').hidden=L.account!=='SAMPLE';
+/* ヘッダーの生成元 */
+document.getElementById('sync').innerHTML=`リポジトリ <span class="mono">${esc(L.commit||'—')}</span> の SQL から生成`;
 
 /* ---------- フィルタUI ---------- */
 function chk(container,key,val,label,sw){
@@ -120,8 +104,7 @@ function graphStyle(){
    {selector:'node',style:{label:'data(label)','font-family':'"JetBrains Mono", ui-monospace, monospace','font-size':10.5,color:c.ink,
      'text-valign':'center','text-halign':'center','text-wrap':'wrap','text-max-width':200,width:212,height:72,shape:'round-rectangle',
      'background-color':c.surface,'border-width':1.5,'border-color':c.line,'line-height':1.35}},
-   ...(state.color==='db'?Object.entries(DBS).map(([k,v])=>({selector:`node[db="${k}"]`,style:{'background-color':cv(v.tok)}})):
-    (state.color==='fresh'?Object.keys(FR):Object.keys(RD)).map(k=>({selector:'node.data.'+k,style:{'background-color':cv('--'+k)}}))),
+   ...Object.entries(DBS).map(([k,v])=>({selector:`node.data[db="${k}"]`,style:{'background-color':cv(v.tok)}})),
    {selector:'node.view',style:{'border-style':'double','border-width':4}},
    {selector:'node.dynamic_table',style:{shape:'cut-rectangle'}},
    {selector:'node.stream',style:{shape:'barrel'}},
@@ -146,8 +129,8 @@ function build(){
   const els=[];edgeMap={};const seen=new Set();
   NODES.forEach(n=>{
     if(isProc(n.type)&&!state.showProc)return;
-    const label=isProc(n.type)?`${n.name}\n${n.cad||'—'}`:`${n.name}\n${n.schema}${n.external?' · 外部':''}\n${usageLabel(n)}\n${timeLabel(n)}`;
-    const cls=[n.type,isProc(n.type)?'proc':'data'];if(!isProc(n.type))cls.push(frBucket(n.dt),rdBucket(n.reads));
+    const label=isProc(n.type)?`${n.name}\n${n.cad||'—'}`:`${n.name}\n${n.schema}${n.external?' · 外部':''}\n${usageLabel(n)} · ${cadLabel(n)}`;
+    const cls=[n.type,isProc(n.type)?'proc':'data'];
     els.push({group:'nodes',data:{id:n.id,label,db:n.db},classes:cls.join(' ')});
   });
   const add=(s,t,cls,label,key)=>{const id=s+'>'+t;if(!seen.has(id)){seen.add(id);els.push({group:'edges',data:{id,source:s,target:t,label:label||''},classes:cls});}
@@ -333,12 +316,8 @@ function renderDetail(){
   h+=`<dl><dt>オーナー</dt><dd>${esc(n.owner||'—')}</dd><dt>タグ</dt><dd>${n.tags.map(t=>`<span class="badge">${esc(t)}</span>`).join(' ')||'—'}</dd>`+
      (proc?`<dt>スケジュール</dt><dd>${esc(n.cad||'—')}</dd>`
           :`<dt>更新方法</dt><dd>${esc(n.refresh||'—')}</dd>`+
-           (n.type==='view'?`<dt>最終参照</dt><dd class="mono">${esc(fmtT(n.lastRead))}</dd>`:`<dt>最終更新</dt><dd class="mono">${esc(fmtT(n.lastAltered))}</dd>`)+
            `<dt>更新頻度</dt><dd>${esc(n.cad||(n.type==='view'?'—（ビュー）':'—'))}</dd>${n.sla?`<dt>SLA</dt><dd>${esc(n.sla)}</dd>`:''}`+
-           `<dt>データの鮮度</dt><dd>${HAS_STATE?rel(n.dt):'未取得'}${n.type==='view'&&n.dt?'（最も古い上流を基準）':''}</dd>`+
-           (n.rows!=null?`<dt>行数</dt><dd class="mono">${n.rows.toLocaleString()}</dd>`:'')+
-           `<dt>後続での利用</dt><dd>直接 <b class="mono">${n.down}</b> ／ 下流全体 <b class="mono">${n.downAll}</b> オブジェクト</dd>`+
-           `<dt>参照回数</dt><dd>${n.reads==null?'未取得':`<b class="mono">${n.reads.toLocaleString()}</b> 回 / 直近30日`}</dd>`)+
+           `<dt>後続での利用</dt><dd>直接 <b class="mono">${n.down}</b> ／ 下流全体 <b class="mono">${n.downAll}</b> オブジェクト</dd>`)+
      `<dt>ファイル</dt><dd class="mono">${file}</dd></dl>`;
   if(writers.length)h+=`<div><h3>この${TYPES[n.type]}を更新する処理</h3><div class="links">${writers.map(w=>BY[w]?lnk(w):`<span class="badge">${esc(w)}</span>`).join('')}</div></div>`;
   h+=`<div><h3>上流（${ups.length}）</h3><div class="links">${ups.map(lnk).join('')||'<span class="hint">なし（起点）</span>'}</div></div>`;
@@ -367,16 +346,13 @@ function usageBlocks(){
   const data=NODES.filter(n=>!isProc(n.type));
   const row=(n,v)=>`${lnk(n.id)}<span class="v">${v}</span>`;
   const byDown=[...data].sort((a,b)=>b.downAll-a.downAll||b.down-a.down).slice(0,5);
-  const byReads=data.filter(n=>n.reads!=null).sort((a,b)=>b.reads-a.reads).slice(0,5);
-  return `<div class="issue"><h3>後続で多く使われている（下流全体）</h3><span class="hint">変更したときの影響が大きいもの</span><div class="rank">${byDown.map(n=>row(n,`直接 ${n.down} / 全 ${n.downAll}`)).join('')}</div></div>`+
-   (byReads.length?`<div class="issue"><h3>よく参照されている（30日）</h3><div class="rank">${byReads.map(n=>row(n,n.reads.toLocaleString()+' 回')).join('')}</div></div>`:'');
+  return `<div class="issue"><h3>後続で多く使われている（下流全体）</h3><span class="hint">変更したときの影響が大きいもの</span><div class="rank">${byDown.map(n=>row(n,`直接 ${n.down} / 全 ${n.downAll}`)).join('')}</div></div>`;
 }
 function overview(){
   const nodesc=NODES.filter(n=>!isProc(n.type)&&!n.external&&!n.desc);
   const allCols=NODES.flatMap(n=>n.cols),filled=allCols.filter(c=>c[2]).length,pct=allCols.length?Math.round(filled/allCols.length*100):0;
   const block=(title,list,note)=>list.length?`<div class="issue"><h3>${title}（${list.length}）</h3>${note?`<span class="hint">${note}</span>`:''}<div class="links">${list.map(n=>lnk(n.id)).join('')}</div></div>`:'';
-  return `<div class="dhead"><div class="dname" style="font-family:var(--f-display)">全体の状況</div><div class="hint">ノードをクリックすると、そのテーブルの上流・下流とカラムの由来を表示します。ノード下段の数字は「下流の数（全体）・30日の参照回数」です。</div></div>`+
-   (HAS_STATE?'':`<div class="warnbox">Snowflake の更新時刻・行数・参照回数を取得していないため、それらは「—」になります。<br><span class="mono">make site STATE=…</span> または GitHub Actions の site ワークフローで取得します。</div>`)+
+  return `<div class="dhead"><div class="dname" style="font-family:var(--f-display)">全体の状況</div><div class="hint">ノードをクリックすると、そのテーブルの上流・下流とカラムの由来を表示します。ノード下段は「下流の数（全体）・更新頻度」です。</div></div>`+
    usageBlocks()+
    block('説明が未記入のオブジェクト',nodesc)+
    `<div class="issue"><h3>カラム説明の記入率</h3><div class="meter"><i style="width:${pct}%"></i></div><span class="hint mono">${filled} / ${allCols.length} カラム（${pct}%）</span></div>`;
@@ -407,10 +383,8 @@ function pickMatch(b){q.value='';state.query='';matches.hidden=true;select(b.dat
 const restyle=()=>{cy.style(graphStyle());if(cy2)cy2.style(colStyle());renderColorLegend();};
 function renderColorLegend(){
   const el=document.getElementById('legend-color');
-  const items=state.color==='db'?Object.keys(DBS).map(k=>[DBS[k].tok,k]):Object.entries(state.color==='fresh'?FR:RD).map(([k,v])=>['--'+k,v]);
-  el.innerHTML=`<span>色＝${state.color==='db'?'DB':state.color==='fresh'?'最終更新':'参照回数/30日'}：</span>`+items.map(([t,l])=>`<i style="background:var(${t})"></i><span>${esc(l)}</span>`).join('');
+  el.innerHTML=`<span>色＝DB：</span>`+Object.keys(DBS).map(k=>`<i style="background:var(${DBS[k].tok})"></i><span>${esc(k)}</span>`).join('');
 }
-document.getElementById('f-color').addEventListener('change',e=>{state.color=e.target.value;restyle();});
 matchMedia('(prefers-color-scheme: dark)').addEventListener('change',restyle);
 new MutationObserver(restyle).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
 document.fonts&&document.fonts.ready.then(restyle);
