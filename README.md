@@ -5,6 +5,7 @@ Snowflake の SQL（テーブル・ビュー・タスク・プロシージャ等
 Snowflake に接続できる場合は、最終更新・行数・30日の参照回数も図に表示します。
 
 > いま `sql/` に入っている RAW_DB / DWH_DB / MART_DB はサンプルです。実際のオブジェクトに置き換えてください（下の「導入手順」）。
+> 進め方は [ロードマップ](docs/ROADMAP.md)（v1〜v3）にまとめています。
 
 ## 仕組み
 
@@ -109,7 +110,6 @@ make serve     # http://localhost:8000 で表示
 | `pr` | PR | 規約チェック、sqlfluff、SQL 解析確認、**変更の影響範囲（下流のテーブル・削除カラムの利用先）を PR にコメント** |
 | `site` | main への push ＋ 毎時 | （設定があれば）Snowflake から更新時刻・行数・参照回数を取得 → サイト生成 → Pages 公開 |
 
-## 今後
+## ロードマップ
 
-- **CD**：main マージで DEV へ自動デプロイ、PROD は承認付き。
-- **dbt**：変換系 SQL をスキーマ単位で dbt に移行。`repo_graph.py` で dbt の `manifest.json` も読み、同じ図に統合する。
+一元管理（v1）→ 環境の変数化とデプロイ自動化（v2）→ データ品質管理（v3）の順に進めます。詳しくは [docs/ROADMAP.md](docs/ROADMAP.md)。
